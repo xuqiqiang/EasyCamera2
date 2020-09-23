@@ -24,7 +24,9 @@ Camera2是Google在Android 5.0中全新设计的框架，相机模块是和硬�
 - 可以同时打开前后摄像头（仅api2，部分机型支持）
 - 可以获取yuv格式的图片
 
-
+功能插件：
+- 滤镜处理: [https://github.com/xuqiqiang/EasyCamera2-GPUImage](https://github.com/xuqiqiang/EasyCamera2-GPUImage)
+- 二维码识别: [https://github.com/xuqiqiang/EasyCamera2-QRCode](https://github.com/xuqiqiang/EasyCamera2-QRCode)
 
 ## Gradle dependency
 
