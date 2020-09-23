@@ -92,7 +92,7 @@ public class DemoActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
         if (Permission.isPermissionGranted(this) && mCameraModule == null) {
-            mCameraModule = new PhotoModule(new Properties());
+            mCameraModule = new PhotoModule(new Properties().debug(true));
             mCameraView.setCameraModule(mCameraModule);
         }
         if (mCameraView != null)
