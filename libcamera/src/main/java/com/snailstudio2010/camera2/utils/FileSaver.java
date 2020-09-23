@@ -123,7 +123,6 @@ public class FileSaver {
             exif.readExif(info.imgData);
             final Bitmap thumbnail = rotateAndWriteJpegData(exif, info);
 
-
             if (true) {
                 final Uri uri = Uri.fromFile(new File(info.imgPath));
                 mContext.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));
@@ -148,25 +147,45 @@ public class FileSaver {
                     }
                 });
             }
-        } catch (IOException e) {
-            Logger.e(TAG, " error get exif msg", e);
+        } catch (final Exception e) {
+            Logger.e(TAG, "error get exif msg", e);
+            if (mListener != null) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onFileSaveError(e.getMessage());
+                    }
+                });
+            }
         }
     }
 
     private void saveYuvFile(final ImageInfo info) {
-        Storage.writeFile(info.imgPath, info.imgData);
-        final Uri uri = Storage.addImageToDB(mResolver, info.imgTitle, info.imgDate,
-                info.imgLocation, info.imgOrientation, info.imgData.length, info.imgPath,
-                info.imgWidth, info.imgHeight, info.imgMimeType);
-        final Bitmap thumbnail = BitmapFactory.decodeResource(
-                mContext.getResources(), R.mipmap.yuv_file);
-        if (mListener != null) {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mListener.onFileSaved(uri, info.imgPath, thumbnail);
-                }
-            });
+        try {
+            Storage.writeFile(info.imgPath, info.imgData);
+            final Uri uri = Storage.addImageToDB(mResolver, info.imgTitle, info.imgDate,
+                    info.imgLocation, info.imgOrientation, info.imgData.length, info.imgPath,
+                    info.imgWidth, info.imgHeight, info.imgMimeType);
+            final Bitmap thumbnail = BitmapFactory.decodeResource(
+                    mContext.getResources(), R.mipmap.yuv_file);
+            if (mListener != null) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onFileSaved(uri, info.imgPath, thumbnail);
+                    }
+                });
+            }
+        } catch (final Exception e) {
+            Logger.e(TAG, "error get yuv msg", e);
+            if (mListener != null) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mListener.onFileSaveError(e.getMessage());
+                    }
+                });
+            }
         }
     }
 
@@ -211,7 +230,7 @@ public class FileSaver {
         return bitmap;
     }
 
-    private Bitmap rotateAndWriteJpegData(ExifInterface exif, ImageInfo info) {
+    private Bitmap rotateAndWriteJpegData(ExifInterface exif, ImageInfo info) throws IOException {
         int orientation = ExifInterface.Orientation.TOP_LEFT;
         int oriW = info.imgWidth;
         int oriH = info.imgHeight;
@@ -306,6 +325,7 @@ public class FileSaver {
             exif.writeExif(rotatedMap, info.imgPath, 100);
         } catch (IOException e) {
             Logger.e(TAG, "write file error msg", e);
+            throw e;
         } finally {
             origin.recycle();
             rotatedMap.recycle();

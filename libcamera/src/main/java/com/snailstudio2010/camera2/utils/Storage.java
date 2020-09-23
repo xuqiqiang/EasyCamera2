@@ -15,6 +15,7 @@ import com.snailstudio2010.camera2.Config;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 
 /**
  * Created by xuqiqiang on 9/6/17.
@@ -33,24 +34,20 @@ public class Storage {
     public static final long LOW_STORAGE_THRESHOLD = 50000000; // 50M
 
 
-    public static void writeFile(String path, byte[] data) {
+    public static void writeFile(String path, byte[] data) throws IOException {
         FileOutputStream out = null;
         try {
             out = new FileOutputStream(path);
             out.write(data);
         } catch (Exception e) {
             Logger.e(TAG, "error to write data", e);
+            throw e;
         } finally {
             close(out);
-//            try {
-//                out.close();
-//            } catch (Exception e) {
-//                Logger.e(TAG, "error to close file after write", e);
-//            }
         }
     }
 
-    public static void writeBitmap(String path, Bitmap bitmap, int quality) {
+    public static void writeBitmap(String path, Bitmap bitmap, int quality) throws IOException {
         FileOutputStream out = null;
         try {
             out = new FileOutputStream(path);
@@ -58,18 +55,20 @@ public class Storage {
             out.flush();
         } catch (Exception e) {
             Logger.e(TAG, "error to write data", e);
+            throw e;
         } finally {
             close(out);
         }
     }
 
-    public static void writeFile(File file, byte[] data) {
+    public static void writeFile(File file, byte[] data) throws IOException {
         FileOutputStream out = null;
         try {
             out = new FileOutputStream(file);
             out.write(data);
         } catch (Exception e) {
             Logger.e(TAG, "error to write data", e);
+            throw e;
         } finally {
             close(out);
         }
