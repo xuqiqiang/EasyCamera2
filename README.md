@@ -28,6 +28,8 @@ Camera2是Google在Android 5.0中全新设计的框架，相机模块是和硬�
 - 滤镜处理: [https://github.com/xuqiqiang/EasyCamera2-GPUImage](https://github.com/xuqiqiang/EasyCamera2-GPUImage)
 - 二维码识别: [https://github.com/xuqiqiang/EasyCamera2-QRCode](https://github.com/xuqiqiang/EasyCamera2-QRCode)
 
+Demo app: [https://github.com/xuqiqiang/EasyCamera2App](https://github.com/xuqiqiang/EasyCamera2App)
+
 ## Gradle dependency
 
 ```
