@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.snailstudio2010.camera2.ui.ContainerView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rl_preview_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextureView
+        android:id="@+id/texture_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</com.snailstudio2010.camera2.ui.ContainerView>

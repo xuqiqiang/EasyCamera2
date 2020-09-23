@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.snailstudio2010.camera2.ui.ContainerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rl_preview_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextureView
+        android:id="@+id/texture_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/ll_record_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/record_view_height"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <Button
+            android:id="@+id/btn_record"
+            android:layout_width="@dimen/record_timer_height"
+            android:layout_height="@dimen/record_timer_height"
+            android:background="@drawable/ic_vector_recoding" />
+
+        <Chronometer
+            android:id="@+id/record_time"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/record_timer_height"
+            android:background="@drawable/record_time_bg"
+            android:gravity="center_vertical"
+            android:paddingLeft="@dimen/record_timer_padding"
+            android:paddingRight="@dimen/record_timer_padding"
+            android:textColor="@color/timer_text_color" />
+    </LinearLayout>
+</com.snailstudio2010.camera2.ui.ContainerView>

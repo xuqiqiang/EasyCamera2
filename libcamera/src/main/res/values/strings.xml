@@ -1,0 +1,4 @@
+<resources>
+    <string name="open_file_error">Can not found app to open image/video</string>
+    <string name="default_camera_id" translatable="false">0</string>
+</resources>

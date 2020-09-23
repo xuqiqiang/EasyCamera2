@@ -1,0 +1,16 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <!-- Recording timer -->
+    <dimen name="record_timer_padding">10dp</dimen>
+    <dimen name="record_timer_height">30dp</dimen>
+    <dimen name="record_view_height">60dp</dimen>
+
+<!--    <dimen name="seek_bar_height">20dp</dimen>-->
+
+    <!--for focus view-->
+    <dimen name="radius_outer">50dp</dimen>
+    <dimen name="radius_inner">30dp</dimen>
+    <dimen name="stroke_width">2dp</dimen>
+</resources>
