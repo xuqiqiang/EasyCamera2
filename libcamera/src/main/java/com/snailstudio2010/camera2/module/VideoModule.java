@@ -6,7 +6,7 @@ import android.provider.MediaStore;
 
 import com.snailstudio2010.camera2.Config;
 import com.snailstudio2010.camera2.Properties;
-import com.snailstudio2010.camera2.callback.PictureListener;
+import com.snailstudio2010.camera2.callback.RecordListener;
 import com.snailstudio2010.camera2.callback.RequestCallback;
 import com.snailstudio2010.camera2.manager.Camera2VideoSession;
 import com.snailstudio2010.camera2.manager.CameraSettings;
@@ -119,11 +119,13 @@ public class VideoModule extends SingleCameraModule {
     private void handleRecordStarted(boolean success) {
         getBaseUI().setUIClickable(true);
         if (success) {
-            if (mPictureListener != null) mPictureListener.onVideoStart();
+            if (mPictureListener instanceof RecordListener)
+                ((RecordListener) mPictureListener).onVideoStart();
             if (getVideoTimer() != null) getVideoTimer().start();
         } else {
             disableState(Controller.CAMERA_STATE_START_RECORD);
-            if (mPictureListener != null) mPictureListener.onVideoStop();
+            if (mPictureListener instanceof RecordListener)
+                ((RecordListener) mPictureListener).onVideoStop();
         }
     }
 
@@ -167,7 +169,8 @@ public class VideoModule extends SingleCameraModule {
                 @Override
                 public void run() {
                     if (getVideoTimer() != null) getVideoTimer().stop();
-                    if (mPictureListener != null) mPictureListener.onVideoStop();
+                    if (mPictureListener instanceof RecordListener)
+                        ((RecordListener) mPictureListener).onVideoStop();
                     getBaseUI().setUIClickable(true);
                 }
             });
@@ -186,13 +189,14 @@ public class VideoModule extends SingleCameraModule {
             public void onMainThread(Void result) {
                 super.onMainThread(result);
                 if (getVideoTimer() != null) getVideoTimer().stop();
-                if (mPictureListener != null) mPictureListener.onVideoStop();
+                if (mPictureListener instanceof RecordListener)
+                    ((RecordListener) mPictureListener).onVideoStop();
                 getBaseUI().setUIClickable(true);
             }
         });
     }
 
-    public void handleVideoRecording(PictureListener listener) {
+    public void handleVideoRecording(RecordListener listener) {
         if (stateEnabled(Controller.CAMERA_STATE_START_RECORD)) {
             stopVideoRecording();
         } else {

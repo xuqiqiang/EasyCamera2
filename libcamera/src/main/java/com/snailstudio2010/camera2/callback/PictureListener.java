@@ -8,8 +8,4 @@ public interface PictureListener extends Camera.ShutterCallback {
     void onComplete(Uri uri, String path, Bitmap thumbnail);
 
     void onError(String msg);
-
-    void onVideoStart();
-
-    void onVideoStop();
 }

@@ -9,13 +9,8 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.snailstudio2010.camera2.CameraView;
-import com.snailstudio2010.camera2.Properties;
 import com.snailstudio2010.camera2.callback.PictureListener;
-import com.snailstudio2010.camera2.module.CameraModule;
 import com.snailstudio2010.camera2.module.PhotoModule;
-import com.snailstudio2010.camera2.module.SingleCameraModule;
-import com.snailstudio2010.camera2.module.VideoModule;
-import com.snailstudio2010.camera2.widget.CoverBlurView;
 import com.xuqiqiang.camera2.demo.ui.ShutterButton;
 import com.xuqiqiang.camera2.demo.utils.Permission;
 
@@ -48,7 +43,7 @@ public class DemoActivity extends BaseActivity {
         mShutter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PictureListener listener = new PictureListener() {
+                mPhotoModule.takePicture(new PictureListener() {
                     @Override
                     public void onShutter() {
                     }
@@ -62,18 +57,7 @@ public class DemoActivity extends BaseActivity {
                     public void onError(String msg) {
                         Toast.makeText(DemoActivity.this, msg, Toast.LENGTH_LONG).show();
                     }
-
-                    @Override
-                    public void onVideoStart() {
-                        mShutter.setMode(ShutterButton.VIDEO_RECORDING_MODE);
-                    }
-
-                    @Override
-                    public void onVideoStop() {
-                        mShutter.setMode(ShutterButton.VIDEO_MODE);
-                    }
-                };
-                mPhotoModule.takePicture(listener);
+                });
             }
         });
     }
