@@ -26,22 +26,34 @@ public class JobExecutor {
         return mHandler;
     }
 
+    private <T> Runnable executable(final Task<T> task) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    T res = task.run();
+                    postOnMainThread(task, res);
+                    task.onJobThread(res);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Logger.e(TAG, "job execute error", e);
+                    task.onError(e.getMessage());
+                }
+            }
+        };
+    }
+
     public <T> void execute(final Task<T> task) {
         if (mExecutor != null) {
-            mExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        T res = task.run();
-                        postOnMainThread(task, res);
-                        task.onJobThread(res);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Logger.e(TAG, "job execute error", e);
-                        task.onError(e.getMessage());
-                    }
-                }
-            });
+            mExecutor.execute(executable(task));
+        }
+    }
+
+    public <T> void executeMust(final Task<T> task) {
+        if (mExecutor != null) {
+            execute(task);
+        } else {
+            new Thread(executable(task)).start();
         }
     }
 

@@ -15,12 +15,14 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
+import android.media.MediaActionSound;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Size;
 import android.view.Surface;
 
 import com.snailstudio2010.camera2.Config;
+import com.snailstudio2010.camera2.Properties;
 import com.snailstudio2010.camera2.callback.RequestCallback;
 import com.snailstudio2010.camera2.utils.CameraUtil;
 import com.snailstudio2010.camera2.utils.Logger;
@@ -57,6 +59,37 @@ public class Camera2PhotoSession extends Camera2Session {
     private Runnable mRunnableFlashValue;
     private Camera.ShutterCallback mShutter;
     private OnImageAvailableListenerImpl mOnImageAvailableListener;
+    private Properties mProperties;
+    private CameraCaptureSession.CaptureCallback mPreviewCallback = new CameraCaptureSession
+            .CaptureCallback() {
+
+        @Override
+        public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull
+                CaptureRequest request, @NonNull CaptureResult partialResult) {
+            super.onCaptureProgressed(session, request, partialResult);
+            Logger.d(TAG, "_test_ onCaptureProgressed");
+            updateAfState(partialResult);
+            processPreCapture(partialResult, 0);
+        }
+
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull
+                CaptureRequest request, @NonNull TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
+            Logger.d(TAG, "_test_ onCaptureCompleted");
+            updateAfState(result);
+            processPreCapture(result, 1);
+            mCallback.onRequestComplete();
+        }
+
+        @Override
+        public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull
+                CaptureRequest request, @NonNull CaptureFailure e) {
+            super.onCaptureFailed(session, request, e);
+            Logger.e(TAG, "onCaptureerror reason:" + e.getReason());
+            mCallback.onRequestComplete();
+        }
+    };
     //session callback
     private CameraCaptureSession.StateCallback sessionStateCb = new CameraCaptureSession
             .StateCallback() {
@@ -91,39 +124,11 @@ public class Camera2PhotoSession extends Camera2Session {
             resetTriggerState();
         }
     };
-    private CameraCaptureSession.CaptureCallback mPreviewCallback = new CameraCaptureSession
-            .CaptureCallback() {
 
-        @Override
-        public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull
-                CaptureRequest request, @NonNull CaptureResult partialResult) {
-            super.onCaptureProgressed(session, request, partialResult);
-            Logger.d(TAG, "_test_ onCaptureProgressed");
-            updateAfState(partialResult);
-            processPreCapture(partialResult, 0);
-        }
-
-        @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull
-                CaptureRequest request, @NonNull TotalCaptureResult result) {
-            super.onCaptureCompleted(session, request, result);
-            Logger.d(TAG, "_test_ onCaptureCompleted");
-            updateAfState(result);
-            processPreCapture(result, 1);
-            mCallback.onRequestComplete();
-        }
-
-        @Override
-        public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull
-                CaptureRequest request, @NonNull CaptureFailure e) {
-            super.onCaptureFailed(session, request, e);
-            Logger.e(TAG, "onCaptureerror reason:" + e.getReason());
-            mCallback.onRequestComplete();
-        }
-    };
-
-    public Camera2PhotoSession(Context context, Handler mainHandler, Handler backgroundThread, CameraSettings settings) {
+    public Camera2PhotoSession(Context context, Handler mainHandler, Handler backgroundThread,
+                               CameraSettings settings, Properties properties) {
         super(context, mainHandler, backgroundThread, settings);
+        mProperties = properties;
     }
 
 //    public Camera2PhotoSession(Context context, Handler mainHandler, Handler backgroundThread, CameraSettings settings) {
@@ -226,6 +231,7 @@ public class Camera2PhotoSession extends Camera2Session {
             mImageReader.close();
             mImageReader = null;
         }
+        super.release();
     }
 
     private void sendFlashRequest(String value) {
@@ -255,6 +261,7 @@ public class Camera2PhotoSession extends Camera2Session {
         mTexture = texture;
         mSurface = new Surface(mTexture);
         mRequestMgr.setRequestCallback(callback);
+        mRequestMgr.setProperties(mProperties);
         getPreviewBuilder();
         try {
             cameraDevice.createCaptureSession(setOutputSize(cameraDevice.getId(), mTexture),
@@ -313,6 +320,7 @@ public class Camera2PhotoSession extends Camera2Session {
         CaptureRequest request = mRequestMgr.getStillPictureRequest(
                 getCaptureBuilder(false, mImageReader.getSurface()), jpegRotation);
         sendCaptureRequestWithStop(request, mCaptureCallback, mMainHandler);
+        playSound(MediaActionSound.SHUTTER_CLICK);
         if (mShutter != null) mShutter.onShutter();
     }
 

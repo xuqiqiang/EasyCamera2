@@ -9,7 +9,9 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaActionSound;
 import android.os.Handler;
+import android.os.Vibrator;
 import android.view.Surface;
 
 import com.snailstudio2010.camera2.Config;
@@ -27,18 +29,14 @@ public abstract class Camera2Session extends Session {
     CameraCharacteristics characteristics;
     CameraDevice cameraDevice;
     CameraCaptureSession cameraSession;
+    private MediaActionSound mMediaActionSound;
 
     Camera2Session(Context context, Handler mainHandler, Handler backgroundThread, CameraSettings settings) {
         super(context, settings);
         mMainHandler = mainHandler;
         mBackgroundHandler = backgroundThread;
-//        mRequestMgr = new RequestManager();
         mRequestMgr = new RequestManager();
     }
-
-//    Camera2Session(Context context, CameraSettings settings) {
-//        super(context, settings);
-//    }
 
     void initCharacteristics() {
         CameraManager manager = (CameraManager) appContext.getSystemService(Context.CAMERA_SERVICE);
@@ -66,6 +64,7 @@ public abstract class Camera2Session extends Session {
 
     CaptureRequest.Builder createBuilder(int type, Surface surface) {
         try {
+            if (cameraDevice == null) return null;
             CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(type);
             builder.addTarget(surface);
             return builder;
@@ -105,6 +104,29 @@ public abstract class Camera2Session extends Session {
             } catch (CameraAccessException | IllegalStateException e) {
                 Logger.e(TAG, "send capture request error", e);
             }
+        }
+    }
+
+    public void playSound(int soundName) {
+        if (mMediaActionSound == null)
+            mMediaActionSound = new MediaActionSound();
+        try {
+            mMediaActionSound.play(soundName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void vibrate(int milliseconds) {
+        Vibrator vibrator = (Vibrator) appContext.getSystemService(Context.VIBRATOR_SERVICE);
+        vibrator.vibrate(milliseconds);
+    }
+
+    @Override
+    public void release() {
+        if (mMediaActionSound != null) {
+            mMediaActionSound.release();
+            mMediaActionSound = null;
         }
     }
 }

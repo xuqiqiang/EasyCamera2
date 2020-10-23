@@ -81,6 +81,11 @@ public class SingleDeviceManager extends DeviceManager {
         return null;
     }
 
+    public Camera.Parameters getParameters() {
+        if (mCamera == null) return null;
+        return mCamera.getParameters();
+    }
+
     public void openCamera(final Handler mainHandler) {
 //        if (mProperties != null && mProperties.isUseCameraV1()) {
 //            Logger.d(TAG, "switchCamera openCamera:" + mCameraId);
@@ -128,7 +133,7 @@ public class SingleDeviceManager extends DeviceManager {
     }
 
     public void releaseCamera() {
-        mJobExecutor.execute(new JobExecutor.Task<Void>() {
+        mJobExecutor.executeMust(new JobExecutor.Task<Void>() {
             @Override
             public Void run() {
                 closeDevice();

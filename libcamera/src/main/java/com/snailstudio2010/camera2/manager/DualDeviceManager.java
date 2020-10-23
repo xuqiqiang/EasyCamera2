@@ -113,7 +113,7 @@ public class DualDeviceManager extends DeviceManager {
     }
 
     public void releaseCamera() {
-        mExecutor.execute(new JobExecutor.Task<Void>() {
+        mExecutor.executeMust(new JobExecutor.Task<Void>() {
             @Override
             public Void run() {
                 closeDevice();

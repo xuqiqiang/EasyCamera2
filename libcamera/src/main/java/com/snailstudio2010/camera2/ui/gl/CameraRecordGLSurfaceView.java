@@ -12,9 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
 
-/**
- * Created by wangyang on 15/7/17.
- */
 public class CameraRecordGLSurfaceView extends CameraGLSurfaceViewWithTexture {
 
     private final Object mRecordStateLock = new Object();

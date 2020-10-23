@@ -7,6 +7,7 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.util.Range;
 
 import com.snailstudio2010.camera2.Config;
+import com.snailstudio2010.camera2.Properties;
 import com.snailstudio2010.camera2.callback.RequestCallback;
 import com.snailstudio2010.camera2.utils.Logger;
 
@@ -22,6 +23,7 @@ public class RequestManager {
             new MeteringRectangle(0, 0, 0, 0, 0)
     };
     private RequestCallback mRequestCallback;
+    private Properties mProperties;
 
     public void setCharacteristics(CameraCharacteristics characteristics) {
         mCharacteristics = characteristics;
@@ -29,6 +31,10 @@ public class RequestManager {
 
     public void setRequestCallback(RequestCallback callback) {
         this.mRequestCallback = callback;
+    }
+
+    public void setProperties(Properties properties) {
+        this.mProperties = properties;
     }
 
     public CaptureRequest getPreviewRequest(CaptureRequest.Builder builder) {
@@ -48,7 +54,43 @@ public class RequestManager {
         Logger.d(TAG, "getPreviewRequest exposureRange:" + exposureRange);
         if (exposureRange != null)
             builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, exposureRange);
+        chooseStabilizationMode(builder);
         return builder;
+    }
+
+    // Prefers optical stabilization over software stabilization if available. Only enables one of
+    // the stabilization modes at a time because having both enabled can cause strange results.
+    private void chooseStabilizationMode(CaptureRequest.Builder captureRequestBuilder) {
+        final int[] availableOpticalStabilization = mCharacteristics.get(
+                CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+        if (availableOpticalStabilization != null) {
+            for (int mode : availableOpticalStabilization) {
+                if (mode == CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON) {
+                    captureRequestBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                            CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                            CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
+                    Logger.d(TAG, "Using optical stabilization.");
+                    return;
+                }
+            }
+        }
+        if (mProperties != null && mProperties.isUseVideoStabilization()) {
+            // If no optical mode is available, try software.
+            final int[] availableVideoStabilization = mCharacteristics.get(
+                    CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES);
+            for (int mode : availableVideoStabilization) {
+                if (mode == CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON) {
+                    captureRequestBuilder.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                            CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON);
+                    captureRequestBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                            CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);
+                    Logger.d(TAG, "Using video stabilization.");
+                    return;
+                }
+            }
+        }
+        Logger.d(TAG, "Stabilization not available.");
     }
 
     private Range<Integer> getRange() {

@@ -1,4 +1,4 @@
-package com.snailstudio2010.camera2.ui;
+package com.snailstudio2010.camera2.widget;
 
 /**
  * Created by xuqiqiang on 16-3-23.

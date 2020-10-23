@@ -45,14 +45,18 @@ public class CameraSettings {
     public static final String KEY_SUPPORT_INFO = "pref_support_info";
     public static final String KEY_VIDEO_ID = "pref_video_camera_id";
     public static final String KEY_VIDEO_SIZE = "pref_video_size";
+    public static final String KEY_VIDEO_QUALITY = "pref_video_quality";
     public static final String KEY_VIDEO_PREVIEW_SIZE = "pref_video_preview_size";
     //for flash mode
     public static final String FLASH_VALUE_ON = "on";
     public static final String FLASH_VALUE_OFF = "off";
     public static final String FLASH_VALUE_AUTO = "auto";
     public static final String FLASH_VALUE_TORCH = "torch";
+    //for video size
+    public static final int VIDEO_QUALITY_480P = 480;
+    public static final int VIDEO_QUALITY_720P = 720;
+    public static final int VIDEO_QUALITY_1080P = 1080;
     private static final ArrayList<String> SPEC_KEY = new ArrayList<>(3);
-//    private static CameraSettings mInstance;
 
     static {
         SPEC_KEY.add(KEY_PICTURE_SIZE);
@@ -80,13 +84,6 @@ public class CameraSettings {
         this(context);
         this.mProperties = properties;
     }
-
-//    public static CameraSettings getInstance(Context context) {
-//        if (mInstance == null) {
-//            mInstance = new CameraSettings(context);
-//        }
-//        return mInstance;
-//    }
 
     /**
      * get related shared preference by camera id
@@ -119,7 +116,6 @@ public class CameraSettings {
         editor.putString(key, value);
         return editor.commit();
     }
-
 
     public boolean setGlobalPref(String key, String value) {
         SharedPreferences.Editor editor = mSharedPreference.edit();
@@ -269,18 +265,17 @@ public class CameraSettings {
             else if (o instanceof Properties.SizeSelector)
                 return ((Properties.SizeSelector) o).select(arr);
         }
-
-        Size videoSize = getVideoSize(id, parameters);
-        return CameraUtil.getPreviewSizeByRatio(arr, mRealDisplaySize,
-                videoSize.getWidth() / (double) (videoSize.getHeight()));
-//        String preStr = getValueFromPref(id, key, Config.NULL_VALUE);
-//        if (Config.NULL_VALUE.equals(preStr)) {
-//            // preference not set, use default value
-//            return CameraUtil.getDefaultPreviewSize(arr, mRealDisplaySize);
-//        } else {
-//            String[] size = preStr.split(CameraUtil.SPLIT_TAG);
-//            return new Size(Integer.parseInt(size[0]), Integer.parseInt(size[1]));
-//        }
+//        Size videoSize = getVideoSize(id, parameters);
+//        return CameraUtil.getPreviewSizeByRatio(arr, mRealDisplaySize,
+//                videoSize.getWidth() / (double) (videoSize.getHeight()));
+        String preStr = getValueFromPref(id, key, Config.NULL_VALUE);
+        if (Config.NULL_VALUE.equals(preStr)) {
+            // preference not set, use default value
+            return CameraUtil.getDefaultPreviewSize(arr, mRealDisplaySize);
+        } else {
+            String[] size = preStr.split(CameraUtil.SPLIT_TAG);
+            return new Size(Integer.parseInt(size[0]), Integer.parseInt(size[1]));
+        }
     }
 
 //    public Size getPreviewSizeByRatio(StreamConfigurationMap map, double ratio) {
@@ -323,8 +318,15 @@ public class CameraSettings {
         }
         String videoStr = getValueFromPref(id, KEY_VIDEO_SIZE, Config.NULL_VALUE);
         if (Config.NULL_VALUE.equals(videoStr)) {
+            int quality = VIDEO_QUALITY_720P;
+            if (mProperties != null) {
+                Object o = mProperties.get(KEY_VIDEO_QUALITY);
+                if (o instanceof Integer) {
+                    quality = (int) o;
+                }
+            }
             // preference not set, use default value
-            return CameraUtil.getDefaultVideoSize(map.getOutputSizes(MediaRecorder.class), mRealDisplaySize);
+            return CameraUtil.getDefaultVideoSize(map.getOutputSizes(MediaRecorder.class), mRealDisplaySize, quality);
         } else {
             String[] size = videoStr.split(CameraUtil.SPLIT_TAG);
             return new Size(Integer.parseInt(size[0]), Integer.parseInt(size[1]));
@@ -341,8 +343,15 @@ public class CameraSettings {
         }
         String videoStr = getValueFromPref(id, KEY_VIDEO_SIZE, Config.NULL_VALUE);
         if (Config.NULL_VALUE.equals(videoStr)) {
+            int quality = VIDEO_QUALITY_720P;
+            if (mProperties != null) {
+                Object o = mProperties.get(KEY_VIDEO_QUALITY);
+                if (o instanceof Integer) {
+                    quality = (int) o;
+                }
+            }
             // preference not set, use default value
-            return CameraUtil.getDefaultVideoSize(arr, mRealDisplaySize);
+            return CameraUtil.getDefaultVideoSize(arr, mRealDisplaySize, quality);
         } else {
             String[] size = videoStr.split(CameraUtil.SPLIT_TAG);
             return new Size(Integer.parseInt(size[0]), Integer.parseInt(size[1]));
@@ -374,8 +383,15 @@ public class CameraSettings {
     public String getVideoSizeStr(String id, String key, StreamConfigurationMap map) {
         String videoStr = getValueFromPref(id, key, Config.NULL_VALUE);
         if (Config.NULL_VALUE.equals(videoStr)) {
+            int quality = VIDEO_QUALITY_720P;
+            if (mProperties != null) {
+                Object o = mProperties.get(KEY_VIDEO_QUALITY);
+                if (o instanceof Integer) {
+                    quality = (int) o;
+                }
+            }
             // preference not set, use default value
-            Size size = CameraUtil.getDefaultVideoSize(map.getOutputSizes(MediaRecorder.class), mRealDisplaySize);
+            Size size = CameraUtil.getDefaultVideoSize(map.getOutputSizes(MediaRecorder.class), mRealDisplaySize, quality);
             return size.getWidth() + CameraUtil.SPLIT_TAG + size.getHeight();
         } else {
             return videoStr;

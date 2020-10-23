@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.snailstudio2010.camera2.ui.gl.CameraGLSurfaceViewWithTexture
+    <TextureView
         android:id="@+id/texture_preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

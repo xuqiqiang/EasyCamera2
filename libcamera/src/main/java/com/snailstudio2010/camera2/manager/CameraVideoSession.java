@@ -183,11 +183,14 @@ public class CameraVideoSession extends Session {
         mCallback = callback;
         mTexture = texture;
         mRequestMgr.setRequestCallback(callback);
+        mRequestMgr.setProperties(mProperties);
         this.mParameters = this.mCamera.getParameters();
         this.mParameters.setPictureFormat(ImageFormat.JPEG);
-        mParameters.setRecordingHint(true);
-        if (mParameters.isVideoStabilizationSupported())
-            mParameters.setVideoStabilization(true);
+//        mParameters.setRecordingHint(true);
+        if (mProperties != null && mProperties.isUseVideoStabilization()) {
+            if (mParameters.isVideoStabilizationSupported())
+                mParameters.setVideoStabilization(true);
+        }
         setPictureSize(this.mParameters);
         setPreviewSize(this.mParameters);
 //        setVideoSize(this.mParameters);
@@ -219,7 +222,7 @@ public class CameraVideoSession extends Session {
         mPictureWidth = size.getWidth();
         mPictureHeight = size.getHeight();
         parameters.setPictureSize(mPictureWidth, mPictureHeight);
-
+        Logger.d(TAG, "pictureSize:" + size);
 //        List<Camera.Size> sizes = parameters.getSupportedPictureSizes();
 //        if (sizes != null) {
 //            int maxSize = 0;
@@ -368,7 +371,6 @@ public class CameraVideoSession extends Session {
 
 
     private void setUpMediaRecorder(int deviceRotation) {
-
         try {
             if (mMediaRecorder != null) {
                 mMediaRecorder.stop();

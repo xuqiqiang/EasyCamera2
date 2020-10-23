@@ -1,33 +1,38 @@
 package com.snailstudio2010.camera2;
 
 import android.content.Context;
+import android.graphics.SurfaceTexture;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import com.snailstudio2010.camera2.callback.CameraListener;
+import com.snailstudio2010.camera2.callback.CameraDelegate;
+import com.snailstudio2010.camera2.callback.CameraUIListener;
 import com.snailstudio2010.camera2.manager.CameraToolKit;
 import com.snailstudio2010.camera2.manager.Controller;
 import com.snailstudio2010.camera2.module.CameraModule;
-import com.snailstudio2010.camera2.ui.ICoverView;
-import com.snailstudio2010.camera2.ui.IFocusView;
+import com.snailstudio2010.camera2.widget.ICoverView;
+import com.snailstudio2010.camera2.widget.IFocusView;
+import com.snailstudio2010.camera2.widget.IVideoTimer;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class CameraView extends FrameLayout implements CameraListener {
+public class CameraView extends FrameLayout implements CameraDelegate, CameraUIListener {
     private static final String TAG = Config.getTag(CameraView.class);
 
     static Context mAppContext;
 
     private ICoverView mCoverView;
     private IFocusView mFocusView;
+    private IVideoTimer mVideoTimer;
 
     private CameraToolKit mToolKit;
     private CameraModule mCameraModule;
 
-    private Set<CameraListener> mListeners = new HashSet<>();
+    private Set<CameraDelegate> mDelegates = new HashSet<>();
+    private Set<CameraUIListener> mUIListeners = new HashSet<>();
     private Controller mController = new Controller() {
 
         @Override
@@ -68,6 +73,20 @@ public class CameraView extends FrameLayout implements CameraListener {
         this.mCoverView = coverView;
     }
 
+    public void setCoverView(ICoverView coverView, boolean attachToRoot) {
+        this.mCoverView = coverView;
+        if (attachToRoot) {
+            ViewGroup parent = (ViewGroup) getParent();
+            int index = parent.indexOfChild(this);
+            parent.addView((View) mCoverView, index < 0 ? -1 : (index + 1));
+        }
+    }
+
+    public void addCoverView(ICoverView coverView) {
+        this.mCoverView = coverView;
+        addView((View) coverView);
+    }
+
     public IFocusView getFocusView() {
         return mFocusView;
     }
@@ -83,9 +102,26 @@ public class CameraView extends FrameLayout implements CameraListener {
         this.addView((View) mFocusView);
     }
 
-    public void setCameraModule(CameraModule cameraModule) {
-        if (mCameraModule != null) {
-            mCameraModule.stopModule();
+    public IVideoTimer getVideoTimer() {
+        return mVideoTimer;
+    }
+
+    public void setVideoTimer(IVideoTimer videoTimer) {
+        this.mVideoTimer = videoTimer;
+    }
+
+    public void setCameraModule(final CameraModule cameraModule) {
+        if (mCameraModule != null && mCameraModule != cameraModule) {
+            mCameraModule.destroy();
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    mCameraModule = cameraModule;
+                    mCameraModule.init(mAppContext, mController);
+                    mCameraModule.startModule();
+                }
+            });
+            return;
         }
 
         mCameraModule = cameraModule;
@@ -116,8 +152,8 @@ public class CameraView extends FrameLayout implements CameraListener {
         if (mFocusView != null)
             mFocusView.initFocusArea(width, height);
 
-        for (CameraListener listener : mListeners) {
-            if (listener.updateUiSize(width, height)) return true;
+        for (CameraDelegate delegate : mDelegates) {
+            if (delegate.updateUiSize(width, height)) return true;
         }
         setLayoutParams(new FrameLayout.LayoutParams(width, height));
         return true;
@@ -125,30 +161,49 @@ public class CameraView extends FrameLayout implements CameraListener {
 
     @Override
     public void onZoomChanged(float currentZoom, float maxZoom) {
-        for (CameraListener listener : mListeners) {
-            listener.onZoomChanged(currentZoom, maxZoom);
+        for (CameraDelegate delegate : mDelegates) {
+            delegate.onZoomChanged(currentZoom, maxZoom);
         }
     }
 
-    public void addListener(CameraListener listener) {
-        mListeners.add(listener);
+    public void addDelegate(CameraDelegate listener) {
+        mDelegates.add(listener);
     }
 
-    public void removeListener(CameraListener listener) {
-        mListeners.remove(listener);
+    public void removeDelegate(CameraDelegate listener) {
+        mDelegates.remove(listener);
+    }
+
+    @Override
+    public void onUIReady(CameraModule module, SurfaceTexture mainSurface, SurfaceTexture auxSurface) {
+        for (CameraUIListener listener : mUIListeners) {
+            listener.onUIReady(module, mainSurface, auxSurface);
+        }
+        if (mCoverView != null)
+            mCoverView.hide(module);
+    }
+
+    @Override
+    public void onUIDestroy(CameraModule module) {
+        for (CameraUIListener listener : mUIListeners) {
+            listener.onUIDestroy(module);
+        }
+        if (mCoverView != null)
+            mCoverView.show(module);
+    }
+
+    public void addUIListener(CameraUIListener listener) {
+        mUIListeners.add(listener);
+    }
+
+    public void removeUIListener(CameraUIListener listener) {
+        mUIListeners.remove(listener);
     }
 
     @Override
     public void setUIClickable(boolean clickable) {
-        for (CameraListener listener : mListeners) {
-            listener.setUIClickable(clickable);
-        }
-    }
-
-    @Override
-    public void closeMenu() {
-        for (CameraListener listener : mListeners) {
-            listener.closeMenu();
+        for (CameraDelegate delegate : mDelegates) {
+            delegate.setUIClickable(clickable);
         }
     }
 
@@ -160,5 +215,10 @@ public class CameraView extends FrameLayout implements CameraListener {
 
     public void destroy() {
         mToolKit.destroy();
+        mDelegates.clear();
+        mUIListeners.clear();
+        if (mCameraModule != null) {
+            mCameraModule.destroy();
+        }
     }
 }

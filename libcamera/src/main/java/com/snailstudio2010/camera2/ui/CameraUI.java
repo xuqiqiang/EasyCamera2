@@ -2,7 +2,6 @@ package com.snailstudio2010.camera2.ui;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.TextureView;
 import android.view.View;
@@ -14,20 +13,23 @@ import com.snailstudio2010.libcamera.R;
 /**
  * Created by xuqiqiang on 16-3-18.
  */
-public class PhotoUI extends CameraBaseUI implements TextureView.SurfaceTextureListener {
+public class CameraUI extends CameraBaseUI implements TextureView.SurfaceTextureListener {
 
     private final String TAG = this.getClass().getSimpleName();
 
     private View mRootView;
     private TextureView mPreviewTexture;
 
-    public PhotoUI(Context context, Handler handler, CameraUiEvent event) {
+    public CameraUI(Context context, CameraUiEvent event) {
         super(event);
         mRootView = LayoutInflater.from(context)
-                .inflate(R.layout.module_photo_layout, null);
+                .inflate(R.layout.module_camera_layout, null);
         mPreviewTexture = mRootView.findViewById(R.id.texture_preview);
         mPreviewTexture.setSurfaceTextureListener(this);
-//        mPreviewTexture.setGestureListener(this);
+    }
+
+    public TextureView getTextureView() {
+        return mPreviewTexture;
     }
 
     @Override
@@ -62,8 +64,7 @@ public class PhotoUI extends CameraBaseUI implements TextureView.SurfaceTextureL
         }
         frameCount++;
         if (frameCount == 2) {
-            uiEvent.onAction(CameraUiEvent.ACTION_PREVIEW_READY, null);
+            uiEvent.onAction(CameraUiEvent.ACTION_PREVIEW_READY, surface);
         }
     }
-
 }

@@ -2,13 +2,16 @@ package com.snailstudio2010.camera2;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraCharacteristics;
+import android.net.Uri;
 import android.util.Log;
 import android.util.Size;
 import android.view.WindowManager;
 
+import com.snailstudio2010.camera2.callback.PictureListener;
 import com.snailstudio2010.camera2.manager.CameraSettings;
 import com.snailstudio2010.camera2.manager.DeviceManager;
 import com.snailstudio2010.camera2.module.SingleCameraModule;
@@ -33,6 +36,8 @@ public class Properties {
     private Map<String, Object> mData = new HashMap<>();
     private boolean useCameraV1;
     private boolean useGPUImage;
+    private boolean useVideoStabilization;
+    private boolean needThumbnail;
     private String savePath;
 
     public Properties() {
@@ -107,10 +112,26 @@ public class Properties {
     }
 
     /**
-     * 视频输出大小。如果不设置，则videoSize为满足16:9比例且最接近屏幕尺寸的大小。
+     * 视频输出大小。如果不设置，则videoSize为满足16:9比例且最接近屏幕尺寸且不超过720P的大小。
      */
     public Properties videoSize(Size size) {
         mData.put(CameraSettings.KEY_VIDEO_SIZE, size);
+        return this;
+    }
+
+    /**
+     * 视频输出质量。默认为720P。
+     *
+     * @see #videoSize(Size)
+     */
+    public Properties videoQuality(int quality) {
+        if (CameraSettings.VIDEO_QUALITY_480P == quality
+                || CameraSettings.VIDEO_QUALITY_720P == quality
+                || CameraSettings.VIDEO_QUALITY_1080P == quality) {
+            mData.put(CameraSettings.KEY_VIDEO_QUALITY, quality);
+        } else {
+            throw new IllegalArgumentException("video quality must be 480/720/1080.");
+        }
         return this;
     }
 
@@ -151,7 +172,7 @@ public class Properties {
     }
 
     /**
-     * 默认闪光灯模式。如果不设置，则默认为off。
+     * 默认闪光灯模式。如果不设置，则默认为off，切换后会记录到缓存。
      *
      * @see SingleCameraModule#setFlashMode(String)
      */
@@ -211,6 +232,34 @@ public class Properties {
 
     public boolean isUseGPUImage() {
         return useGPUImage;
+    }
+
+    /**
+     * 是否启用软件视频稳定(需要设备支持)，默认不启用。本框架会先检测设备是否支持光学视频稳定，
+     * 支持的话会启用之，否则才会继续查询是否支持软件视频稳定，如果查询到支持的话，启用之。
+     * 部分设备可能出现兼容性问题。
+     */
+    public Properties useVideoStabilization(boolean useVideoStabilization) {
+        this.useVideoStabilization = useVideoStabilization;
+        return this;
+    }
+
+    public boolean isUseVideoStabilization() {
+        return useVideoStabilization;
+    }
+
+    public boolean isNeedThumbnail() {
+        return needThumbnail;
+    }
+
+    /**
+     * 拍照和视频是否需要缩略图。默认为false。
+     *
+     * @see PictureListener#onComplete(Uri, String, Bitmap)
+     */
+    public Properties needThumbnail(boolean needThumbnail) {
+        this.needThumbnail = needThumbnail;
+        return this;
     }
 
     /**

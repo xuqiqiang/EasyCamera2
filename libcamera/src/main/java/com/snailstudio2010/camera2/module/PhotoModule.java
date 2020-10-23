@@ -2,7 +2,6 @@ package com.snailstudio2010.camera2.module;
 
 import com.snailstudio2010.camera2.Config;
 import com.snailstudio2010.camera2.Properties;
-import com.snailstudio2010.camera2.callback.CameraUiEvent;
 import com.snailstudio2010.camera2.callback.PictureListener;
 import com.snailstudio2010.camera2.callback.RequestCallback;
 import com.snailstudio2010.camera2.manager.Camera2PhotoSession;
@@ -10,9 +9,6 @@ import com.snailstudio2010.camera2.manager.CameraPhotoSession;
 import com.snailstudio2010.camera2.manager.CameraSettings;
 import com.snailstudio2010.camera2.manager.Controller;
 import com.snailstudio2010.camera2.manager.Session;
-import com.snailstudio2010.camera2.ui.CameraBaseUI;
-import com.snailstudio2010.camera2.ui.GLPhotoUI;
-import com.snailstudio2010.camera2.ui.PhotoUI;
 import com.snailstudio2010.camera2.utils.Logger;
 
 /**
@@ -37,7 +33,9 @@ public class PhotoModule extends SingleCameraModule {
             mainHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    getBaseUI().updateUiSize(width, height);
+                    if (!isDestroyed()) {
+                        getBaseUI().updateUiSize(width, height);
+                    }
                 }
             });
             mFocusManager.onPreviewChanged(width, height, mDeviceMgr.getCharacteristics());
@@ -51,7 +49,9 @@ public class PhotoModule extends SingleCameraModule {
 
         @Override
         public void onZoomChanged(float currentZoom, float maxZoom) {
-            getBaseUI().onZoomChanged(currentZoom, maxZoom);
+            if (!isDestroyed()) {
+                getBaseUI().onZoomChanged(currentZoom, maxZoom);
+            }
         }
 
         @Override
@@ -69,19 +69,11 @@ public class PhotoModule extends SingleCameraModule {
     }
 
     @Override
-    protected CameraBaseUI getUI(CameraUiEvent mCameraUiEvent) {
-        return mProperties != null && mProperties.isUseGPUImage() ?
-                new GLPhotoUI(appContext, mainHandler, mCameraUiEvent) :
-                new PhotoUI(appContext, mainHandler, mCameraUiEvent);
-//        return new GLPhotoUI(appContext, mainHandler, mCameraUiEvent);
-    }
-
-    @Override
     protected Session getSession() {
         return mProperties != null && mProperties.isUseCameraV1() ?
                 new CameraPhotoSession(appContext, mainHandler, getSettings()) :
-                new Camera2PhotoSession(appContext, mainHandler, getToolKit().getBackgroundHandler(), getSettings());
-//        return new Camera2PhotoSession(appContext, mainHandler, getSettings());
+                new Camera2PhotoSession(appContext, mainHandler, getToolKit().getBackgroundHandler(),
+                        getSettings(), mProperties);
     }
 
     @Override
@@ -99,17 +91,15 @@ public class PhotoModule extends SingleCameraModule {
         if (!stateEnabled(Controller.CAMERA_MODULE_RUNNING)
                 || !stateEnabled(Controller.CAMERA_STATE_OPENED)
                 || !stateEnabled(Controller.CAMERA_STATE_UI_READY)
-                || stateEnabled(Controller.CAMERA_STATE_CAPTURE)) {
+                || stateEnabled(Controller.CAMERA_STATE_CAPTURE)
+                || stateEnabled(Controller.CAMERA_MODULE_DESTROY)) {
             if (listener != null)
                 listener.onError("state error");
             return;
         }
         enableState(Controller.CAMERA_STATE_CAPTURE);
         mPictureListener = listener;
-//        setPictureListener(listener);
-//        mUI.setUIClickable(false);
         getBaseUI().setUIClickable(false);
         mSession.applyRequest(Session.RQ_TAKE_PICTURE, getToolKit().getOrientation(), mPictureListener);
-//        mSession.applyRequest(Session.RQ_CAMERA_TAKE_PICTURE, getToolKit().getOrientation());
     }
 }

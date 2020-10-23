@@ -90,6 +90,7 @@ public class Camera2VideoSession extends Camera2Session {
             Logger.d(TAG, " session onConfigured id:" + session.getDevice().getId());
             cameraSession = session;
             sendVideoPreviewRequest();
+            vibrate(50);
             try {
                 mMediaRecorder.start();
                 mCallback.onRecordStarted(true);
@@ -232,6 +233,7 @@ public class Camera2VideoSession extends Camera2Session {
             mMediaRecorder.reset();
             mCallback.onRecordStopped(mCurrentRecordFile.getPath(),
                     mVideoSize.getWidth(), mVideoSize.getHeight());
+            vibrate(50);
         } catch (Exception e) {
             mMediaRecorder.reset();
             if (mCurrentRecordFile.exists() && mCurrentRecordFile.delete()) {
@@ -255,6 +257,10 @@ public class Camera2VideoSession extends Camera2Session {
         // camera device may change, reset builder
         mPreviewBuilder = null;
         mVideoBuilder = null;
+        if (mSurface != null) {
+            mSurface.release();
+            mSurface = null;
+        }
     }
 
     /* need call after surface is available, after session configured
@@ -267,16 +273,17 @@ public class Camera2VideoSession extends Camera2Session {
         mVideoBuilder = null;
         mCallback = callback;
         mTexture = texture;
-        mSurface = new Surface(mTexture);
+//        if (mSurface == null)
+//            mSurface = new Surface(mTexture);
         mRequestMgr.setRequestCallback(callback);
+        mRequestMgr.setProperties(mProperties);
         getPreviewBuilder();
         try {
             cameraDevice.createCaptureSession(setPreviewOutputSize(cameraDevice.getId(), mTexture),
                     sessionStateCb, mMainHandler);
-        } catch (CameraAccessException | IllegalStateException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     private void createVideoSession(int deviceRotation) {
@@ -342,6 +349,7 @@ public class Camera2VideoSession extends Camera2Session {
             return mVideoBuilder;
         }
         if (mPreviewBuilder == null) {
+            if (mSurface == null) mSurface = new Surface(mTexture);
             mPreviewBuilder = createBuilder(CameraDevice.TEMPLATE_PREVIEW, mSurface);
         }
         return mPreviewBuilder;
@@ -349,6 +357,7 @@ public class Camera2VideoSession extends Camera2Session {
 
     private CaptureRequest.Builder getVideoBuilder() {
         try {
+            if (mSurface == null) mSurface = new Surface(mTexture);
             mVideoBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
             mVideoBuilder.addTarget(mSurface);
             mVideoBuilder.addTarget(mMediaRecorder.getSurface());
@@ -376,7 +385,7 @@ public class Camera2VideoSession extends Camera2Session {
         Logger.d(TAG, "previewSize:" + mPreviewSize);
         Logger.d(TAG, "videoSize:" + mVideoSize);
         // config surface
-        Surface surface = new Surface(texture);
+//        Surface surface = new Surface(texture);
         Size uiSize = CameraUtil.getPreviewUiSize(appContext, mPreviewSize);
         mCallback.onViewChange(uiSize.getHeight(), uiSize.getWidth());
 
@@ -386,18 +395,19 @@ public class Camera2VideoSession extends Camera2Session {
         Surface previewReaderSurface = mOnImageAvailableListener
                 .handleImage(mPreviewSize, mPreviewBuilder, mCameraPreviewCallback);
         if (previewReaderSurface != null)
-            return Arrays.asList(surface, previewReaderSurface);
+            return Arrays.asList(mSurface, previewReaderSurface);
 //            list.add(previewReaderSurface);
 
-        return Collections.singletonList(surface);
+        return Collections.singletonList(mSurface);
     }
 
     // config video record size
     private List<Surface> setVideoOutputSize(SurfaceTexture texture, Surface videoSurface) {
         texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
         // config surface
-        Surface surface = new Surface(texture);
-        return Arrays.asList(surface, videoSurface);
+//        Surface surface = new Surface(texture);
+        if (mSurface == null) mSurface = new Surface(mTexture);
+        return Arrays.asList(mSurface, videoSurface);
     }
 
     private void setUpMediaRecorder(int deviceRotation) {

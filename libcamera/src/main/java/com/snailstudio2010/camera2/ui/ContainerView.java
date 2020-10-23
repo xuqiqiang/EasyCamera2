@@ -10,10 +10,6 @@ import com.snailstudio2010.camera2.utils.Nullable;
 import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
-/**
- * Created by zhaozhibo on 2017/10/31.
- */
-
 public class ContainerView extends FrameLayout {
 
     private Paint mPaint;
@@ -29,18 +25,14 @@ public class ContainerView extends FrameLayout {
 
     public ContainerView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-//        init();
         mPaint = new Paint();
         mPaint.setColor(Color.RED);
         mPaint.setStyle(Paint.Style.FILL);
     }
 
-
     @Override
     protected void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
-
-
         if (mLocationPoints == null) {
             return;
         }

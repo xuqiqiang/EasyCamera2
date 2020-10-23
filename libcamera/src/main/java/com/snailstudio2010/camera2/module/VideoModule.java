@@ -6,7 +6,6 @@ import android.provider.MediaStore;
 
 import com.snailstudio2010.camera2.Config;
 import com.snailstudio2010.camera2.Properties;
-import com.snailstudio2010.camera2.callback.CameraUiEvent;
 import com.snailstudio2010.camera2.callback.PictureListener;
 import com.snailstudio2010.camera2.callback.RequestCallback;
 import com.snailstudio2010.camera2.manager.Camera2VideoSession;
@@ -14,9 +13,7 @@ import com.snailstudio2010.camera2.manager.CameraSettings;
 import com.snailstudio2010.camera2.manager.CameraVideoSession;
 import com.snailstudio2010.camera2.manager.Controller;
 import com.snailstudio2010.camera2.manager.Session;
-import com.snailstudio2010.camera2.ui.CameraBaseUI;
-import com.snailstudio2010.camera2.ui.GLVideoUI;
-import com.snailstudio2010.camera2.ui.VideoUI;
+import com.snailstudio2010.camera2.ui.GLCameraUI;
 import com.snailstudio2010.camera2.ui.gl.CameraRecordGLSurfaceView;
 import com.snailstudio2010.camera2.utils.JobExecutor;
 import com.snailstudio2010.camera2.utils.MediaFunc;
@@ -35,6 +32,7 @@ public class VideoModule extends SingleCameraModule {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    if (isDestroyed()) return;
                     getBaseUI().updateUiSize(width, height);
                     mFocusManager.onPreviewChanged(width, height, mDeviceMgr.getCharacteristics());
                 }
@@ -76,16 +74,12 @@ public class VideoModule extends SingleCameraModule {
                     fileSaver.saveVideoFile(width, height, getToolKit().getOrientation(),
                             filePath, MediaFunc.MEDIA_TYPE_VIDEO, result);
                 }
-
-//                @Override
-//                public void onMainThread(Bitmap result) {
-//                    getBaseUI().setThumbnail(result);
-//                }
             });
         }
 
         @Override
         public void onZoomChanged(float currentZoom, float maxZoom) {
+            if (isDestroyed()) return;
             getBaseUI().onZoomChanged(currentZoom, maxZoom);
         }
     };
@@ -99,20 +93,11 @@ public class VideoModule extends SingleCameraModule {
     }
 
     @Override
-    protected CameraBaseUI getUI(CameraUiEvent mCameraUiEvent) {
-        return mProperties != null && mProperties.isUseGPUImage() ?
-                new GLVideoUI(appContext, mainHandler, mCameraUiEvent, mProperties) :
-                new VideoUI(appContext, mainHandler, mCameraUiEvent);
-//        return new VideoUI(appContext, mainHandler, mCameraUiEvent);
-    }
-
-    @Override
     protected Session getSession() {
         return mProperties != null && mProperties.isUseCameraV1() ?
                 new CameraVideoSession(appContext, mainHandler, getSettings(), mProperties) :
                 new Camera2VideoSession(appContext, mainHandler, getToolKit().getBackgroundHandler(),
                         getSettings(), mProperties);
-//        return new Camera2VideoSession(appContext, mainHandler, getSettings());
     }
 
     @Override
@@ -125,8 +110,8 @@ public class VideoModule extends SingleCameraModule {
         return mRequestCallback;
     }
 
-
     private Bitmap getVideoThumbnail(String path) {
+        if (mProperties == null || !mProperties.isNeedThumbnail()) return null;
         return ThumbnailUtils.createVideoThumbnail(
                 path, MediaStore.Video.Thumbnails.MICRO_KIND);
     }
@@ -135,10 +120,7 @@ public class VideoModule extends SingleCameraModule {
         getBaseUI().setUIClickable(true);
         if (success) {
             if (mPictureListener != null) mPictureListener.onVideoStart();
-            if (mUI instanceof VideoUI)
-                ((VideoUI) mUI).startVideoTimer();
-            else if (mUI instanceof GLVideoUI)
-                ((GLVideoUI) mUI).startVideoTimer();
+            if (getVideoTimer() != null) getVideoTimer().start();
         } else {
             disableState(Controller.CAMERA_STATE_START_RECORD);
             if (mPictureListener != null) mPictureListener.onVideoStop();
@@ -149,8 +131,8 @@ public class VideoModule extends SingleCameraModule {
         enableState(Controller.CAMERA_STATE_START_RECORD);
         getBaseUI().setUIClickable(false);
         if (stateEnabled(Controller.CAMERA_STATE_UI_READY)) {
-            if (mUI instanceof GLVideoUI) {
-                ((GLVideoUI) mUI).startRecording(new CameraRecordGLSurfaceView.StartRecordingCallback() {
+            if (mUI instanceof GLCameraUI) {
+                ((GLCameraUI) mUI).startRecording(new CameraRecordGLSurfaceView.StartRecordingCallback() {
 
                     @Override
                     public void startRecordingOver(boolean success) {
@@ -172,11 +154,10 @@ public class VideoModule extends SingleCameraModule {
 
     private void stopVideoRecording() {
         disableState(Controller.CAMERA_STATE_START_RECORD);
-        if (mPictureListener != null) mPictureListener.onVideoStop();
+//        if (mPictureListener != null) mPictureListener.onVideoStop();
         getBaseUI().setUIClickable(false);
-
-        if (mUI instanceof GLVideoUI) {
-            ((GLVideoUI) mUI).endRecording(new GLVideoUI.RecordEndListener() {
+        if (mUI instanceof GLCameraUI) {
+            ((GLCameraUI) mUI).endRecording(new GLCameraUI.RecordEndListener() {
                 @Override
                 public void onRecordEnd(String filePath, int width, int height) {
                     mRequestCallback.onRecordStopped(filePath, width, height);
@@ -185,7 +166,8 @@ public class VideoModule extends SingleCameraModule {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    ((GLVideoUI) mUI).stopVideoTimer();
+                    if (getVideoTimer() != null) getVideoTimer().stop();
+                    if (mPictureListener != null) mPictureListener.onVideoStop();
                     getBaseUI().setUIClickable(true);
                 }
             });
@@ -203,7 +185,8 @@ public class VideoModule extends SingleCameraModule {
             @Override
             public void onMainThread(Void result) {
                 super.onMainThread(result);
-                ((VideoUI) mUI).stopVideoTimer();
+                if (getVideoTimer() != null) getVideoTimer().stop();
+                if (mPictureListener != null) mPictureListener.onVideoStop();
                 getBaseUI().setUIClickable(true);
             }
         });
@@ -213,7 +196,6 @@ public class VideoModule extends SingleCameraModule {
         if (stateEnabled(Controller.CAMERA_STATE_START_RECORD)) {
             stopVideoRecording();
         } else {
-//            setPictureListener(listener);
             mPictureListener = listener;
             startVideoRecording();
         }
@@ -222,6 +204,7 @@ public class VideoModule extends SingleCameraModule {
     @Override
     public void stop() {
         super.stop();
+        if (getVideoTimer() != null) getVideoTimer().stop();
         if (stateEnabled(Controller.CAMERA_STATE_START_RECORD)) {
             stopVideoRecording();
         }

@@ -12,13 +12,16 @@ import android.os.Handler;
 import android.text.TextUtils;
 
 import com.snailstudio2010.camera2.Config;
+import com.snailstudio2010.camera2.Properties;
 import com.snailstudio2010.camera2.exif.ExifInterface;
+import com.snailstudio2010.camera2.exif.ExifTag;
 import com.snailstudio2010.libcamera.R;
 
 import org.wysaid.nativePort.CGENativeLibrary;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import static com.snailstudio2010.camera2.ui.gl.CameraGLSurfaceView.mMaxTextureSize;
 
@@ -40,6 +43,7 @@ public class FileSaver {
     private Handler mHandler;
     private String mFilterConfig;
     private float mFilterIntensity = 1.0f;
+    private Properties mProperties;
 
     public FileSaver(Context context, Handler handler) {
         mHandler = handler;
@@ -51,7 +55,11 @@ public class FileSaver {
         mListener = listener;
     }
 
-    public void saveFile(int width, int height, int orientation, byte[] data, String tag,
+    public void setProperties(Properties properties) {
+        this.mProperties = properties;
+    }
+
+    public void saveFile(int width, int height, int orientation, boolean isFront, byte[] data, String tag,
                          int saveType, String savePath) {
         File file = MediaFunc.getOutputMediaFile(saveType, tag, savePath);
         if (file == null) {
@@ -68,6 +76,7 @@ public class FileSaver {
         info.imgHeight = height;
         info.imgData = data;
         info.imgOrientation = 0;
+        info.isFront = isFront;
         info.imgDate = System.currentTimeMillis();
         info.imgPath = file.getPath();
         info.imgTitle = file.getName();
@@ -166,8 +175,8 @@ public class FileSaver {
             final Uri uri = Storage.addImageToDB(mResolver, info.imgTitle, info.imgDate,
                     info.imgLocation, info.imgOrientation, info.imgData.length, info.imgPath,
                     info.imgWidth, info.imgHeight, info.imgMimeType);
-            final Bitmap thumbnail = BitmapFactory.decodeResource(
-                    mContext.getResources(), R.mipmap.yuv_file);
+            final Bitmap thumbnail = (mProperties == null || !mProperties.isNeedThumbnail()) ? null :
+                    BitmapFactory.decodeResource(mContext.getResources(), R.mipmap.yuv_file);
             if (mListener != null) {
                 mHandler.post(new Runnable() {
                     @Override
@@ -231,7 +240,9 @@ public class FileSaver {
     }
 
     private Bitmap rotateAndWriteJpegData(ExifInterface exif, ImageInfo info) throws IOException {
-        int orientation = ExifInterface.Orientation.TOP_LEFT;
+//        int orientation = info.isFront ? ExifInterface.Orientation.TOP_RIGHT :
+//                ExifInterface.Orientation.TOP_LEFT;
+        int orientation = 0;
         int oriW = info.imgWidth;
         int oriH = info.imgHeight;
         try {
@@ -242,6 +253,12 @@ public class FileSaver {
             // getTagIntValue() may cause NullPointerException
             e.printStackTrace();
         }
+
+        if (orientation == 0 || orientation == ExifInterface.Orientation.TOP_LEFT) {
+            orientation = info.isFront ? ExifInterface.Orientation.TOP_RIGHT :
+                    ExifInterface.Orientation.TOP_LEFT;
+        }
+
         Logger.d(TAG, "rotateAndWriteJpegData:" + orientation);
         // no need rotate, just save and return
         if (orientation == ExifInterface.Orientation.TOP_LEFT) {
@@ -321,6 +338,8 @@ public class FileSaver {
             CGENativeLibrary.filterImage_MultipleEffectsWriteBack(rotatedMap, mFilterConfig, mFilterIntensity);
         }
         Bitmap thumb = getThumbnail(rotatedMap);
+        List<ExifTag> tags = exif.getAllTags();
+        exif.setExif(tags);
         try {
             exif.writeExif(rotatedMap, info.imgPath, 100);
         } catch (IOException e) {
@@ -334,6 +353,7 @@ public class FileSaver {
     }
 
     private Bitmap getThumbnail(ImageInfo info) {
+        if (mProperties == null || !mProperties.isNeedThumbnail()) return null;
         if (JPEG.equals(info.imgMimeType)) {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inSampleSize = info.imgWidth / Config.THUMB_SIZE;
@@ -345,13 +365,14 @@ public class FileSaver {
     }
 
     private Bitmap getThumbnail(Bitmap origin) {
+        if (mProperties == null || !mProperties.isNeedThumbnail()) return null;
         int height = origin.getHeight() / (origin.getWidth() / Config.THUMB_SIZE);
         return Bitmap.createScaledBitmap(origin, Config.THUMB_SIZE, height, true);
     }
 
     public void release() {
-        mListener = null;
-        mContext = null;
+//        mListener = null;
+//        mContext = null;
     }
 
     public interface FileListener {
@@ -365,6 +386,7 @@ public class FileSaver {
         int imgWidth;
         int imgHeight;
         int imgOrientation;
+        boolean isFront;
         long imgDate;
         Location imgLocation;
         String imgTitle;

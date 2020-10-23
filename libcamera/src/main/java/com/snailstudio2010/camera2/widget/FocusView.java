@@ -1,4 +1,4 @@
-package com.snailstudio2010.camera2.ui;
+package com.snailstudio2010.camera2.widget;
 
 import android.animation.ObjectAnimator;
 import android.content.Context;
@@ -21,7 +21,7 @@ public class FocusView extends View implements IFocusView {
 
     private final String TAG = this.getClass().getSimpleName();
     private int radiusOuter, radiusInner, strokeWidth;
-    private int colorSuccess, colorerror, colorNormal, colorCurrent;
+    private int colorSuccess, colorError, colorNormal, colorCurrent;
     private int previewWidth;
     private int previewHeight;
     private RectF outerRectF, innerRectF;
@@ -29,7 +29,7 @@ public class FocusView extends View implements IFocusView {
     private ObjectAnimator animator;
 
     public FocusView(Context context) {
-        this(context, null);
+        this(context, null, 0);
     }
 
     public FocusView(Context context, AttributeSet attrs) {
@@ -43,7 +43,7 @@ public class FocusView extends View implements IFocusView {
         radiusInner = resources.getDimensionPixelSize(R.dimen.radius_inner);
         strokeWidth = resources.getDimensionPixelSize(R.dimen.stroke_width);
 
-        colorerror = resources.getColor(R.color.focus_error);
+        colorError = resources.getColor(R.color.focus_error);
         colorSuccess = resources.getColor(R.color.focus_success);
         colorNormal = resources.getColor(R.color.focus_normal);
         colorCurrent = colorNormal;
@@ -106,7 +106,7 @@ public class FocusView extends View implements IFocusView {
     @Override
     public void focusError() {
         Logger.d(TAG, "focusError");
-        colorCurrent = colorerror;
+        colorCurrent = colorError;
         invalidate();
         setAnimator(180, 0, 200).start();
     }

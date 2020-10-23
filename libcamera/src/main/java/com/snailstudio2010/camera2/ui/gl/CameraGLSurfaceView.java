@@ -14,10 +14,6 @@ import com.snailstudio2010.camera2.utils.Logger;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-/**
- * Created by wangyang on 15/7/17.
- */
-
 public class CameraGLSurfaceView extends GLSurfaceView implements GLSurfaceView.Renderer {
 
     public static final String LOG_TAG = Config.getTag(CameraGLSurfaceView.class);
@@ -26,54 +22,8 @@ public class CameraGLSurfaceView extends GLSurfaceView implements GLSurfaceView.
     protected int mViewHeight;
     protected OnCreateCallback mOnCreateCallback;
 
-    protected int mRecordWidth = 480;
-    protected int mRecordHeight = 640;
-
-    //isBigger 为true 表示当宽高不满足时，取最近的较大值.
-    // 若为 false 则取较小的
-//    public void setPictureSize(int width, int height, boolean isBigger) {
-//        //默认会旋转90度.
-//        cameraInstance().setPictureSize(height, width, isBigger);
-//    }
-
-    // mode value should be:
-    //    Camera.Parameters.FLASH_MODE_AUTO;
-    //    Camera.Parameters.FLASH_MODE_OFF;
-    //    Camera.Parameters.FLASH_MODE_ON;
-    //    Camera.Parameters.FLASH_MODE_RED_EYE
-    //    Camera.Parameters.FLASH_MODE_TORCH 等
-//    public synchronized boolean setFlashLightMode(String mode) {
-//
-//        if (!getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)) {
-//            Logger.e(LOG_TAG, "No flash light is supported by current device!");
-//            return false;
-//        }
-//
-//        if (!mIsCameraBackForward) {
-//            return false;
-//        }
-//
-//        Camera.Parameters parameters = cameraInstance().getParams();
-//
-//        if (parameters == null)
-//            return false;
-//
-//        try {
-//
-//            if (!parameters.getSupportedFlashModes().contains(mode)) {
-//                Logger.e(LOG_TAG, "Invalid Flash Light Mode!!!");
-//                return false;
-//            }
-//
-//            parameters.setFlashMode(mode);
-//            cameraInstance().setParams(parameters);
-//        } catch (Exception e) {
-//            Logger.e(LOG_TAG, "Switch flash light failed, check if you're using front camera.");
-//            return false;
-//        }
-//
-//        return true;
-//    }
+    protected int mRecordWidth = 720;
+    protected int mRecordHeight = 1280;
 
     protected int mMaxPreviewWidth = 1280;
     protected int mMaxPreviewHeight = 1280;
@@ -107,89 +57,10 @@ public class CameraGLSurfaceView extends GLSurfaceView implements GLSurfaceView.
         mFitFullView = fit;
         calcViewport();
     }
-//
-//    //是否使用后置摄像头
-//    protected boolean mIsCameraBackForward = true;
-//
-//    public boolean isCameraBackForward() {
-//        return mIsCameraBackForward;
-//    }
-//
-//    public CameraInstance cameraInstance() {
-//        return CameraInstance.getInstance();
-//    }
-//
-//    //should be called before 'onSurfaceCreated'.
-//    public void presetCameraForward(boolean isBackForward) {
-//        mIsCameraBackForward = isBackForward;
-//    }
-//
-//    //注意， 录制的尺寸将影响preview的尺寸
-//    //这里的width和height表示竖屏尺寸
-//    //在onSurfaceCreated之前设置有效
-//    public void presetRecordingSize(int width, int height) {
-//        if (width > mMaxPreviewWidth || height > mMaxPreviewHeight) {
-//            float scaling = Math.min(mMaxPreviewWidth / (float) width, mMaxPreviewHeight / (float) height);
-//            width = (int) (width * scaling);
-//            height = (int) (height * scaling);
-//        }
-//
-//        mRecordWidth = width;
-//        mRecordHeight = height;
-//        cameraInstance().setPreferPreviewSize(width, height);
-//    }
-//
-//    public void resumePreview() {
-//
-//    }
-//
-//    public void stopPreview() {
-//        queueEvent(new Runnable() {
-//            @Override
-//            public void run() {
-//                cameraInstance().stopPreview();
-//            }
-//        });
-//    }
-//
-//    protected void onSwitchCamera() {
-//
-//    }
-//
-//    public final void switchCamera() {
-//        mIsCameraBackForward = !mIsCameraBackForward;
-//
-//        queueEvent(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                cameraInstance().stopCamera();
-//                onSwitchCamera();
-//                int facing = mIsCameraBackForward ? Camera.CameraInfo.CAMERA_FACING_BACK : Camera.CameraInfo.CAMERA_FACING_FRONT;
-//
-//                cameraInstance().tryOpenCamera(new CameraInstance.CameraOpenCallback() {
-//                    @Override
-//                    public void cameraReady() {
-//                        resumePreview();
-//                    }
-//                }, facing);
-//
-//                requestRender();
-//            }
-//        });
-//    }
-//
-//    //Attention， 'focusAtPoint' will change focus mode to 'FOCUS_MODE_AUTO'
-//    //If you want to keep the previous focus mode， please reset the focus mode after 'AutoFocusCallback'.
-//    //x,y should be: [0, 1]， stands for 'touchEventPosition / viewSize'.
-//    public void focusAtPoint(float x, float y, Camera.AutoFocusCallback focusCallback) {
-//        cameraInstance().focusAtPoint(y, 1.0f - x, focusCallback);
-//    }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         super.surfaceDestroyed(holder);
-//        cameraInstance().stopCamera();
     }
 
     //定制一些初始化操作
@@ -241,23 +112,18 @@ public class CameraGLSurfaceView extends GLSurfaceView implements GLSurfaceView.
     @Override
     public void onPause() {
         Logger.d(LOG_TAG, "glsurfaceview onPause in...");
-
-//        cameraInstance().stopCamera();
         super.onPause();
         Logger.d(LOG_TAG, "glsurfaceview onPause out...");
     }
 
     protected void onRelease() {
-
     }
 
     public final void release(final ReleaseOKCallback callback) {
         queueEvent(new Runnable() {
             @Override
             public void run() {
-
                 onRelease();
-
                 Logger.d(LOG_TAG, "GLSurfaceview release...");
                 if (callback != null)
                     callback.releaseOK();
@@ -277,7 +143,6 @@ public class CameraGLSurfaceView extends GLSurfaceView implements GLSurfaceView.
 
         mRecordWidth = width;
         mRecordHeight = height;
-//        cameraInstance().setPreferPreviewSize(width, height);
     }
 
     protected void calcViewport() {
@@ -343,55 +208,10 @@ public class CameraGLSurfaceView extends GLSurfaceView implements GLSurfaceView.
         void createOver();
     }
 
-//    public interface TakePictureCallback {
-//        //You can recycle the bitmap.
-//        void takePictureOK(Bitmap bmp);
-//    }
-//
-//    public void takeShot(final TakePictureCallback callback) {
-//    }
-//
-//    protected void calcViewport() {
-//
-//        float scaling = mRecordWidth / (float) mRecordHeight;
-//        float viewRatio = mViewWidth / (float) mViewHeight;
-//        float s = scaling / viewRatio;
-//
-//        int w, h;
-//
-//        if (mFitFullView) {
-//            //撑满全部view(内容大于view)
-//            if (s > 1.0) {
-//                w = (int) (mViewHeight * scaling);
-//                h = mViewHeight;
-//            } else {
-//                w = mViewWidth;
-//                h = (int) (mViewWidth / scaling);
-//            }
-//        } else {
-//            //显示全部内容(内容小于view)
-//            if (s > 1.0) {
-//                w = mViewWidth;
-//                h = (int) (mViewWidth / scaling);
-//            } else {
-//                h = mViewHeight;
-//                w = (int) (mViewHeight * scaling);
-//            }
-//        }
-//
-//        mDrawViewport.width = w;
-//        mDrawViewport.height = h;
-//        mDrawViewport.x = (mViewWidth - mDrawViewport.width) / 2;
-//        mDrawViewport.y = (mViewHeight - mDrawViewport.height) / 2;
-//        Logger.d(LOG_TAG, String.format("View port: %d, %d, %d, %d", mDrawViewport.x, mDrawViewport.y, mDrawViewport.width, mDrawViewport.height));
-//    }
-
     public interface ReleaseOKCallback {
-
         void releaseOK();
     }
 
-    //
     public static class Viewport {
         public int x, y, width, height;
     }

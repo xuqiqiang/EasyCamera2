@@ -11,11 +11,11 @@ public class Config {
     // some default config, not actually
     public static final String MAIN_ID = "0";
     public static final String AUX_ID = "1";
-    private static final String TAG_PREFIX = "camera2/";
     public static final float AUX_PREVIEW_SCALE = 0.3F;
     public static final String IMAGE_FORMAT = String.valueOf(ImageFormat.JPEG);
     public static final String NULL_VALUE = "SharedPreference No Value";
     public static final int THUMB_SIZE = 128;
+    private static final String TAG_PREFIX = "camera2/";
 
     public static String getTag(Class<?> cls) {
         return TAG_PREFIX + cls.getSimpleName();

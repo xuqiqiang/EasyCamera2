@@ -10,8 +10,8 @@ import android.os.Message;
 
 import com.snailstudio2010.camera2.Config;
 import com.snailstudio2010.camera2.callback.CameraUiEvent;
-import com.snailstudio2010.camera2.ui.IFocusView;
 import com.snailstudio2010.camera2.utils.CoordinateTransformer;
+import com.snailstudio2010.camera2.widget.IFocusView;
 
 import java.lang.ref.WeakReference;
 

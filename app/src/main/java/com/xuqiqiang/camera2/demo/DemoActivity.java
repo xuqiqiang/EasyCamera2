@@ -15,6 +15,7 @@ import com.snailstudio2010.camera2.module.CameraModule;
 import com.snailstudio2010.camera2.module.PhotoModule;
 import com.snailstudio2010.camera2.module.SingleCameraModule;
 import com.snailstudio2010.camera2.module.VideoModule;
+import com.snailstudio2010.camera2.widget.CoverBlurView;
 import com.xuqiqiang.camera2.demo.ui.ShutterButton;
 import com.xuqiqiang.camera2.demo.utils.Permission;
 
@@ -25,7 +26,7 @@ public class DemoActivity extends BaseActivity {
 
     private CameraView mCameraView;
     private ShutterButton mShutter;
-    private CameraModule mCameraModule;
+    private PhotoModule mPhotoModule;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -33,12 +34,11 @@ public class DemoActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo);
         mCameraView = findViewById(R.id.camera_view);
-
         mCameraView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    ((SingleCameraModule) mCameraModule).onTouchToFocus(event.getX(), event.getY());
+                    mPhotoModule.onTouchToFocus(event.getX(), event.getY());
                 }
                 return true;
             }
@@ -73,11 +73,7 @@ public class DemoActivity extends BaseActivity {
                         mShutter.setMode(ShutterButton.VIDEO_MODE);
                     }
                 };
-                if (mCameraModule instanceof PhotoModule) {
-                    ((PhotoModule) mCameraModule).takePicture(listener);
-                } else if (mCameraModule instanceof VideoModule) {
-                    ((VideoModule) mCameraModule).handleVideoRecording(listener);
-                }
+                mPhotoModule.takePicture(listener);
             }
         });
     }
@@ -91,9 +87,9 @@ public class DemoActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (Permission.isPermissionGranted(this) && mCameraModule == null) {
-            mCameraModule = new PhotoModule(new Properties().debug(true));
-            mCameraView.setCameraModule(mCameraModule);
+        if (Permission.isPermissionGranted(this) && mPhotoModule == null) {
+            mPhotoModule = new PhotoModule();
+            mCameraView.setCameraModule(mPhotoModule);
         }
         if (mCameraView != null)
             mCameraView.onResume();

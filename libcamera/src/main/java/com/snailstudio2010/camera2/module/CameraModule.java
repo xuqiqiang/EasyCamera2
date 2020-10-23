@@ -15,12 +15,12 @@ import com.snailstudio2010.camera2.manager.CameraToolKit;
 import com.snailstudio2010.camera2.manager.Controller;
 import com.snailstudio2010.camera2.manager.DeviceManager;
 import com.snailstudio2010.camera2.manager.FocusOverlayManager;
-import com.snailstudio2010.camera2.ui.ICoverView;
-import com.snailstudio2010.camera2.ui.IFocusView;
+import com.snailstudio2010.camera2.ui.ContainerView;
 import com.snailstudio2010.camera2.utils.FileSaver;
 import com.snailstudio2010.camera2.utils.JobExecutor;
 import com.snailstudio2010.camera2.utils.Logger;
 import com.snailstudio2010.camera2.utils.MediaFunc;
+import com.snailstudio2010.camera2.widget.IVideoTimer;
 
 /**
  * Created by xuqiqiang on 16-3-9.
@@ -38,10 +38,12 @@ public abstract class CameraModule {
     private CameraSettings mCameraSettings;
 
     public CameraModule() {
+        this.mProperties = new Properties();
     }
 
     public CameraModule(Properties properties) {
-        this.mProperties = properties;
+        if (properties == null) this.mProperties = new Properties();
+        else this.mProperties = properties;
     }
 
     public void init(Context context, Controller controller) {
@@ -53,6 +55,7 @@ public abstract class CameraModule {
         mController = controller;
         mainHandler = getToolKit().getMainHandler();
         fileSaver = getToolKit().getFileSaver();
+        fileSaver.setProperties(mProperties);
         rootView = controller.getBaseUI().getRootView();
         mCameraSettings = new CameraSettings(context, mProperties);
         // call subclass init()
@@ -99,23 +102,29 @@ public abstract class CameraModule {
 
     protected abstract void stop();
 
+    public void destroy() {
+        enableState(Controller.CAMERA_MODULE_DESTROY);
+        stopModule();
+    }
+
+    protected boolean isDestroyed() {
+        return stateEnabled(Controller.CAMERA_MODULE_DESTROY);
+    }
+
     void addModuleView(View view) {
         View child = rootView.getChildAt(0);
         if (child != view) {
-//            if (rootView.getChildCount() > 1) {
-//                rootView.removeViewAt(0);
-//            }
-            if (child != null && !(child instanceof IFocusView)) {
+            Logger.d(TAG, "addModuleView:" + (child instanceof ContainerView));
+            if (child instanceof ContainerView) {
                 rootView.removeViewAt(0);
             }
-//            rootView.removeAllViews();
             rootView.addView(view, 0);
         }
     }
 
     void saveFile(final byte[] data, final int width, final int height, final String cameraId,
                   final String formatKey, final String tag) {
-        getExecutor().execute(new JobExecutor.Task<Void>() {
+        getExecutor().executeMust(new JobExecutor.Task<Void>() {
             @Override
             public Void run() {
                 int format = getSettings().getPicFormat(cameraId, formatKey);
@@ -123,7 +132,11 @@ public abstract class CameraModule {
                 if (format != ImageFormat.JPEG) {
                     saveType = MediaFunc.MEDIA_TYPE_YUV;
                 }
-                fileSaver.saveFile(width, height, getToolKit().getOrientation(), data, tag, saveType,
+                boolean isFront = false;
+                if (CameraModule.this instanceof SingleCameraModule) {
+                    isFront = ((SingleCameraModule) CameraModule.this).isFrontCamera();
+                }
+                fileSaver.saveFile(width, height, getToolKit().getOrientation(), isFront, data, tag, saveType,
                         mProperties != null ? mProperties.getSavePath() : null);
                 return super.run();
             }
@@ -139,8 +152,16 @@ public abstract class CameraModule {
         return mController.getToolKit();
     }
 
-    ICoverView getCoverView() {
-        return mController.getBaseUI().getCoverView();
+//    ICoverView getCoverView() {
+//        return mController.getBaseUI().getCoverView();
+//    }
+
+    IVideoTimer getVideoTimer() {
+        return mController.getBaseUI().getVideoTimer();
+    }
+
+    public CameraView getCameraView() {
+        return mController.getBaseUI();
     }
 
     public abstract DeviceManager getDeviceManager();
@@ -165,10 +186,6 @@ public abstract class CameraModule {
     protected void runOnUiThreadDelay(Runnable runnable, long delay) {
         getToolKit().getMainHandler().postDelayed(runnable, delay);
     }
-
-//    void showSetting() {
-//        mController.showSetting();
-//    }
 
     void updateAFState(int state, FocusOverlayManager overlayManager) {
         Logger.d("IFocusView", "updateAFState:" + state);

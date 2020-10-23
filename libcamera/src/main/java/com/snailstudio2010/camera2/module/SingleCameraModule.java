@@ -9,12 +9,15 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.net.Uri;
 import android.text.TextUtils;
+import android.util.Size;
+import android.view.TextureView;
 
 import com.snailstudio2010.camera2.Config;
 import com.snailstudio2010.camera2.Properties;
 import com.snailstudio2010.camera2.callback.CameraUiEvent;
 import com.snailstudio2010.camera2.callback.PictureListener;
 import com.snailstudio2010.camera2.callback.RequestCallback;
+import com.snailstudio2010.camera2.callback.TakeShotListener;
 import com.snailstudio2010.camera2.manager.CameraSettings;
 import com.snailstudio2010.camera2.manager.Controller;
 import com.snailstudio2010.camera2.manager.DeviceManager;
@@ -22,8 +25,11 @@ import com.snailstudio2010.camera2.manager.FocusOverlayManager;
 import com.snailstudio2010.camera2.manager.Session;
 import com.snailstudio2010.camera2.manager.SingleDeviceManager;
 import com.snailstudio2010.camera2.ui.CameraBaseUI;
+import com.snailstudio2010.camera2.ui.CameraUI;
 import com.snailstudio2010.camera2.ui.GLCameraUI;
+import com.snailstudio2010.camera2.ui.gl.CameraGLSurfaceViewWithTexture;
 import com.snailstudio2010.camera2.utils.FileSaver;
+import com.snailstudio2010.camera2.utils.JobExecutor;
 import com.snailstudio2010.camera2.utils.Logger;
 import com.snailstudio2010.camera2.utils.MediaFunc;
 
@@ -43,23 +49,13 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
     private String mFilter;
     private RequestCallback mRequestCallback;
     private PreviewCallback mPreviewCallback;
-    //    private Properties mProperties;
     private DeviceManager.CameraEvent mCameraEvent = new DeviceManager.CameraEvent() {
-//        @Override
-//        public void onDeviceOpened(Camera device) {
-//            super.onDeviceOpened(device);
-//            Logger.d(TAG, "camera opened");
-//            mSession.applyRequest(Session.RQ_SET_CAMERA_DEVICE, device, mDeviceMgr.getCameraId());
-//            enableState(Controller.CAMERA_STATE_OPENED);
-//            if (stateEnabled(Controller.CAMERA_STATE_UI_READY)) {
-//                mSession.applyRequest(Session.RQ_START_PREVIEW, mSurfaceTexture, mRequestCallback);
-//            }
-//        }
 
         @Override
         public void onDeviceOpened(Object device) {
-//            super.onDeviceOpened(device);
+            super.onDeviceOpened(device);
             Logger.d(TAG, "camera opened");
+            presetRecordingSize();
             mSession.applyRequest(Session.RQ_SET_DEVICE, device, mDeviceMgr.getCameraId());
             enableState(Controller.CAMERA_STATE_OPENED);
             if (stateEnabled(Controller.CAMERA_STATE_UI_READY)) {
@@ -86,11 +82,6 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
             enableState(Controller.CAMERA_STATE_UI_READY);
             if (stateEnabled(Controller.CAMERA_STATE_OPENED)) {
                 mSession.applyRequest(Session.RQ_START_PREVIEW, mSurfaceTexture, mRequestCallback);
-//                if (mProperties != null && mProperties.isUseCameraV1()) {
-//                    mSession.applyRequest(Session.RQ_START_PREVIEW, mSurfaceTexture, mRequestCallback);
-//                } else {
-//                    mSession.applyRequest(Session.RQ_START_PREVIEW, mSurfaceTexture, mRequestCallback);
-//                }
             }
         }
 
@@ -100,47 +91,27 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
             Logger.d(TAG, "onSurfaceTextureDestroyed");
         }
 
-//        @Override
-//        public void onTouchToFocus(float x, float y) {
-//            // close all menu when touch to focus
-//            getBaseUI().closeMenu();
-//            mFocusManager.startFocus(x, y);
-//            MeteringRectangle focusRect = mFocusManager.getFocusArea(x, y, true);
-//            MeteringRectangle meterRect = mFocusManager.getFocusArea(x, y, false);
-//            mSession.applyRequest(Session.RQ_AF_AE_REGIONS, focusRect, meterRect);
-//        }
-
         @Override
         public void resetTouchToFocus() {
             if (stateEnabled(Controller.CAMERA_MODULE_RUNNING)) {
                 mSession.applyRequest(Session.RQ_FOCUS_MODE,
                         mProperties != null && mProperties.isUseCameraV1() ? "continuous-picture" :
                                 CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-//                mSession.applyRequest(Session.RQ_CAMERA_FOCUS_MODE,
-//                        "continuous-picture");
             }
         }
-
-//        @Override
-//        public <T> void onSettingChange(CaptureRequest.Key<T> key, T value) {
-//            if (key == CaptureRequest.LENS_FOCUS_DISTANCE) {
-//                mSession.applyRequest(Session.RQ_FOCUS_DISTANCE, value);
-//            }
-//        }
 
         @Override
         public <T> void onAction(String type, T value) {
             // close all menu when ui click
-            getBaseUI().closeMenu();
+//            getBaseUI().closeMenu();
             switch (type) {
-//                case CameraUiEvent.ACTION_CHANGE_MODULE:
-//                    getBaseUI().changeModule((Integer) value);
-//                    break;
                 case CameraUiEvent.ACTION_SWITCH_CAMERA:
                     break;
                 case CameraUiEvent.ACTION_PREVIEW_READY:
-                    if (getCoverView() != null)
-                        getCoverView().hideWithAnimation();
+//                    if (getCoverView() != null)
+//                        getCoverView().hideWithAnimation();
+                    getBaseUI().onUIReady(SingleCameraModule.this,
+                            (SurfaceTexture) value, null);
                     break;
                 default:
                     break;
@@ -156,7 +127,49 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
         super(properties);
     }
 
-    protected abstract CameraBaseUI getUI(CameraUiEvent mCameraUiEvent);
+    private void presetRecordingSize() {
+        if (mProperties != null && mProperties.isUseCameraV1() && mProperties.isUseGPUImage()) {
+            Camera.Parameters parameters = getDeviceManager().getParameters();
+            if (parameters != null) {
+                Size recordSize = null;
+                if (SingleCameraModule.this instanceof PhotoModule) {
+                    // for takeShot
+                    recordSize = getSettings().getPreviewSize(getDeviceManager().getCameraId(),
+                            CameraSettings.KEY_PREVIEW_SIZE,
+                            parameters);
+                } else {
+                    // for recording
+                    recordSize = getSettings().getVideoSize(getDeviceManager().getCameraId(),
+                            parameters);
+                }
+                ((GLCameraUI) mUI).presetRecordingSize(recordSize.getHeight(), recordSize.getWidth());
+            }
+        }
+    }
+
+    protected CameraBaseUI getUI(CameraUiEvent cameraUiEvent) {
+        if (mProperties != null && mProperties.isUseGPUImage()) {
+            Size recordSize = null;
+            if (mProperties != null && mProperties.isUseCameraV1()) {
+                // 此时无法配置recordSize参数
+                // see presetRecordingSize()
+            } else {
+                if (this instanceof PhotoModule) {
+                    // for takeShot
+                    recordSize = getSettings().getPreviewSize(getDeviceManager().getCameraId(),
+                            CameraSettings.KEY_PREVIEW_SIZE,
+                            getDeviceManager().getConfigMap());
+                } else {
+                    // for recording
+                    recordSize = getSettings().getVideoSize(getDeviceManager().getCameraId(),
+                            getDeviceManager().getConfigMap());
+                }
+            }
+            return new GLCameraUI(appContext, cameraUiEvent, recordSize, mProperties);
+        } else {
+            return new CameraUI(appContext, cameraUiEvent);
+        }
+    }
 
     protected abstract Session getSession();
 
@@ -180,9 +193,8 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
     protected void init() {
         mCameraKey = getCameraKey();
         mRequestCallback = getRequestCallback();
-        mUI = getUI(mCameraUiEvent);
-        mUI.setCoverView(getCoverView());
         mDeviceMgr = new SingleDeviceManager(appContext, mProperties, getExecutor(), mCameraEvent);
+        mUI = getUI(mCameraUiEvent);
         mFocusManager = new FocusOverlayManager(getBaseUI().getFocusView(), mainHandler.getLooper());
         mFocusManager.setListener(mCameraUiEvent);
         mSession = getSession();
@@ -211,18 +223,31 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
 
     @Override
     public void stop() {
-        getBaseUI().closeMenu();
-        if (getCoverView() != null)
-            getCoverView().show();
+//        getBaseUI().closeMenu();
+//        if (getCoverView() != null)
+//            getCoverView().show();
+        getBaseUI().onUIDestroy(this);
         mFocusManager.removeDelayMessage();
         mFocusManager.hideFocusUI();
-        mSession.release();
-        mDeviceMgr.releaseCamera();
+
+        if (stateEnabled(Controller.CAMERA_STATE_CAPTURE)
+                || stateEnabled(Controller.CAMERA_STATE_START_RECORD)) {
+            mainHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mSession.release();
+                    mDeviceMgr.releaseCamera();
+                }
+            }, 2000);
+        } else {
+            mSession.release();
+            mDeviceMgr.releaseCamera();
+        }
         Logger.d(TAG, "stop module");
     }
 
     @Override
-    public DeviceManager getDeviceManager() {
+    public SingleDeviceManager getDeviceManager() {
         return mDeviceMgr;
     }
 
@@ -236,10 +261,10 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
     @Override
     public void onFileSaved(Uri uri, String path, Bitmap thumbnail) {
         MediaFunc.setCurrentUri(uri);
-//        mUI.setUIClickable(true);
-        getBaseUI().setUIClickable(true);
-        Logger.d(TAG, "uri:" + uri.toString());
-        Logger.d(TAG, "path:" + path);
+        if (!isDestroyed()) {
+            getBaseUI().setUIClickable(true);
+        }
+        Logger.d(TAG, "onFileSaved uri:" + uri.toString() + ", path:" + path);
         if (mPictureListener != null) {
             mPictureListener.onComplete(uri, path, thumbnail);
             mPictureListener = null;
@@ -253,8 +278,9 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
      */
     @Override
     public void onFileSaveError(String msg) {
-//        mUI.setUIClickable(true);
-        getBaseUI().setUIClickable(true);
+        if (!isDestroyed()) {
+            getBaseUI().setUIClickable(true);
+        }
         if (mPictureListener != null) {
             mPictureListener.onError(msg);
             mPictureListener = null;
@@ -263,29 +289,19 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
 
     public boolean isFrontCamera() {
         return mDeviceMgr.isFrontCamera();
-//        Integer face = mDeviceMgr.getCharacteristics(mDeviceMgr.getCameraId())
-//                .get(CameraCharacteristics.LENS_FACING);
-//        return face != null && CameraCharacteristics.LENS_FACING_FRONT == face;
     }
 
-//    public void switchCamera(boolean isFront, Properties properties) {
-//        if(isFront == isFrontCamera()) return;
-//        switchCamera(properties);
-//    }
+    public boolean switchCamera() {
+        boolean ret = false;
+        if (mProperties != null) {
+            Object o = mProperties.get(CameraSettings.KEY_CAMERA_ID);
+            if (o instanceof Boolean) {
+                mProperties.cameraDevice(!Boolean.TRUE.equals(o));
+                ret = true;
+            }
+        }
 
-    public void switchCamera() {
-//        this.mProperties = properties;
-//        if (properties != null) {
-//            Object o = mProperties.get(CameraSettings.KEY_CAMERA_ID);
-//            boolean isFront = o instanceof Boolean && (Boolean) o;
-//            if (isFront == mDeviceMgr.isFrontCamera()) return;
-//        }
-        boolean ret;
-        Object o = mProperties.get(CameraSettings.KEY_CAMERA_ID);
-        if (o instanceof Boolean) {
-            mProperties.cameraDevice(!Boolean.TRUE.equals(o));
-            ret = true;
-        } else {
+        if (!ret) {
             String[] idList = mDeviceMgr.getCameraIdList();
 
             String switchId = null;
@@ -336,33 +352,31 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
                 }
             }
             Logger.d(TAG, "switchCamera 2:" + switchId);
-            if (TextUtils.isEmpty(switchId)) return;
-//        int currentId = Integer.parseInt(mDeviceMgr.getCameraId());
-//        int cameraCount = mDeviceMgr.getCameraIdList().length;
-//        currentId++;
-//        if (cameraCount < 2) {
-//            // only one camera, just return
-//            return;
-//        } else if (currentId >= cameraCount) {
-//            currentId = 0;
-//        }
-//        String switchId = String.valueOf(currentId);
+            if (TextUtils.isEmpty(switchId)) return false;
             mDeviceMgr.setCameraId(switchId);
             ret = getSettings().setGlobalPref(mCameraKey, switchId);
         }
 
-
         if (ret) {
             stopModule();
             startModule();
+            mUI.switchCamera();
         } else {
             Logger.e(TAG, "set camera id pref error");
         }
-        mUI.switchCamera();
+        return ret;
+    }
+
+    public String getFlashMode() {
+        return getSettings().getGlobalPref(CameraSettings.KEY_FLASH_MODE);
     }
 
     public void setFlashMode(String mode) {
-        getSettings().setPrefValueById(mDeviceMgr.getCameraId(), CameraSettings.KEY_FLASH_MODE, mode);
+        if (mProperties != null && mProperties.get(CameraSettings.KEY_FLASH_MODE) != null) {
+            mProperties.flashMode(mode);
+        } else {
+            getSettings().setPrefValueById(mDeviceMgr.getCameraId(), CameraSettings.KEY_FLASH_MODE, mode);
+        }
         mSession.applyRequest(Session.RQ_FLASH_MODE, mode);
     }
 
@@ -370,6 +384,11 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
         mSession.applyRequest(Session.RQ_FOCUS_DISTANCE, value);
     }
 
+    /**
+     * 设置相机缩放比例
+     *
+     * @param value 相机当前缩放值(范围: 0.0 - 1.0，默认为0.0，最大值为1.0)
+     */
     public void setCameraZoom(float value) {
         mSession.applyRequest(Session.RQ_CAMERA_ZOOM, value);
     }
@@ -382,10 +401,81 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
         }
     }
 
+    public Bitmap takeShot() {
+        return takeShot(0, 0);
+    }
+
+    public Bitmap takeShot(int width, int height) {
+        if (mUI == null) return null;
+        if (mUI instanceof GLCameraUI) {
+            final TakeShotLock takeShotLock = new TakeShotLock();
+            CameraGLSurfaceViewWithTexture textureView = ((GLCameraUI) mUI).getGLSurfaceView();
+            textureView.takeShot(width, height, new TakeShotListener() {
+                @Override
+                public void onTakeShot(Bitmap bmp) {
+                    takeShotLock.bitmap = bmp;
+                    synchronized (takeShotLock) {
+                        takeShotLock.notifyAll();
+                    }
+                }
+            });
+            synchronized (takeShotLock) {
+                try {
+                    takeShotLock.wait(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return takeShotLock.bitmap;
+        } else {
+            TextureView textureView = ((CameraUI) mUI).getTextureView();
+            if (width > 0 && height > 0) return textureView.getBitmap(width, height);
+            else return textureView.getBitmap();
+        }
+    }
+
+    public void takeShotAsync(TakeShotListener listener) {
+        takeShotAsync(0, 0, listener);
+    }
+
+    public void takeShotAsync(final int width, final int height, final TakeShotListener listener) {
+        if (mUI == null) {
+//            if (listener != null) mainHandler.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    listener.onTakeShot(null);
+//                }
+//            });
+            listener.onTakeShot(null);
+            return;
+        }
+        if (mUI instanceof GLCameraUI) {
+            CameraGLSurfaceViewWithTexture textureView = ((GLCameraUI) mUI).getGLSurfaceView();
+            textureView.takeShot(width, height, listener);
+        } else {
+            getToolKit().getExecutor().executeMust(new JobExecutor.Task<Bitmap>() {
+                @Override
+                public Bitmap run() {
+                    TextureView textureView = ((CameraUI) mUI).getTextureView();
+                    if (width > 0 && height > 0) return textureView.getBitmap(width, height);
+                    else return textureView.getBitmap();
+                }
+
+                @Override
+                public void onJobThread(Bitmap result) {
+                    if (listener != null) listener.onTakeShot(result);
+                }
+            });
+//            TextureView textureView = ((CameraUI) mUI).getTextureView();
+//            if (listener != null) listener.onTakeShot(textureView.getBitmap());
+        }
+    }
+
     public void onTouchToFocus(float x, float y) {
         // close all menu when touch to focus
-        if (stateEnabled(Controller.CAMERA_MODULE_STOP)) return;
-        getBaseUI().closeMenu();
+        if (stateEnabled(Controller.CAMERA_MODULE_STOP)
+                || stateEnabled(Controller.CAMERA_MODULE_DESTROY)) return;
+//        getBaseUI().closeMenu();
         mFocusManager.startFocus(x, y);
         if (mProperties != null && mProperties.isUseCameraV1()) {
             Rect focusRect = mFocusManager.calcTapArea(x, y, 1.0f);
@@ -398,17 +488,15 @@ public abstract class SingleCameraModule extends CameraModule implements FileSav
         }
     }
 
-//    public CameraCharacteristics getCharacteristics() {
-//        if (mSession == null) return null;
-//        return mSession.getCharacteristics();
-//    }
-
-
     public CameraBaseUI getUI() {
         return mUI;
     }
 
     public interface PreviewCallback {
         void onPreviewFrame(byte[] data, android.util.Size size);
+    }
+
+    private static class TakeShotLock {
+        private Bitmap bitmap;
     }
 }

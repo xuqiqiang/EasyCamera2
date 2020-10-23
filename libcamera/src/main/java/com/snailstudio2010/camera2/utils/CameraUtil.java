@@ -16,6 +16,8 @@ import com.snailstudio2010.camera2.Config;
 import java.util.Arrays;
 import java.util.Comparator;
 
+import static com.snailstudio2010.camera2.manager.CameraSettings.VIDEO_QUALITY_480P;
+
 /**
  * Created by xuqiqiang on 12/15/16.
  */
@@ -52,22 +54,8 @@ public class CameraUtil {
      * @param supportSize specific stream configuration map used for get supported picture size
      * @return largest 4:3 picture size or largest size in supported list
      */
-//    public static Size getDefaultPictureSize(StreamConfigurationMap map, int format) {
-//        Size[] supportSize = map.getOutputSizes(format);
-//        Logger.d(TAG, "getDefaultPictureSize first:" + supportSize[0]);
-//        sortCamera2Size(supportSize);
-//        for (Size size : supportSize) {
-//            if (size.getWidth() * size.getHeight() > 2000 * 10000)
-//                continue;
-//            Logger.d(TAG, "getDefaultPictureSize size:" + size);
-//            if (Config.ratioMatched(size)) {
-//                return size;
-//            }
-//        }
-//        return supportSize[0];
-//    }
     public static Size getDefaultPictureSize(Size[] supportSize) {
-//        Size[] supportSize = map.getOutputSizes(format);
+        Size defaultSize = supportSize[0];
         sortCamera2Size(supportSize);
         Logger.d(TAG, "getDefaultPictureSize", supportSize);
         for (Size size : supportSize) {
@@ -78,7 +66,7 @@ public class CameraUtil {
                 return size;
             }
         }
-        return supportSize[0];
+        return defaultSize;
     }
 
     /**
@@ -88,22 +76,8 @@ public class CameraUtil {
      * @param displaySize devices screen size
      * @return preview size equals or less than screen size
      */
-//    public static Size getDefaultPreviewSize(StreamConfigurationMap map, Point displaySize) {
-//        Size[] supportSize = map.getOutputSizes(SurfaceTexture.class);
-//        sortCamera2Size(supportSize);
-//        for (Size size : supportSize) {
-//            if (!Config.ratioMatched(size)) {
-//                continue;
-//            }
-//            if ((size.getHeight() == displaySize.x)
-//                    || (size.getWidth() <= displaySize.y && size.getHeight() <= displaySize.x)) {
-//                return size;
-//            }
-//        }
-//        return supportSize[0];
-//    }
     public static Size getDefaultPreviewSize(Size[] supportSize, Point displaySize) {
-//        Size[] supportSize = map.getOutputSizes(SurfaceTexture.class);
+        Size defaultSize = supportSize[0];
         sortCamera2Size(supportSize);
         Logger.d(TAG, "getDefaultPreviewSize", supportSize);
         for (Size size : supportSize) {
@@ -115,11 +89,11 @@ public class CameraUtil {
                 return size;
             }
         }
-        return supportSize[0];
+        return defaultSize;
     }
 
     public static Size getPreviewSizeByRatio(Size[] supportSize, Point displaySize, double ratio) {
-//        Size[] supportSize = map.getOutputSizes(SurfaceTexture.class);
+        Size defaultSize = supportSize[0];
         sortCamera2Size(supportSize);
         Logger.d(TAG, "getPreviewSizeByRatio", supportSize);
         for (Size size : supportSize) {
@@ -132,7 +106,7 @@ public class CameraUtil {
                 return size;
             }
         }
-        return supportSize[0];
+        return defaultSize;
     }
 
     /**
@@ -141,15 +115,24 @@ public class CameraUtil {
      * @param supportSize specific stream configuration map used for get supported picture size
      * @return size match screen size or largest size in supported list
      */
-    public static Size getDefaultVideoSize(Size[] supportSize, Point displaySize) {
+    public static Size getDefaultVideoSize(Size[] supportSize, Point displaySize, int quality) {
+        Size defaultSize = supportSize[0];
         sortCamera2Size(supportSize);
         Logger.d(TAG, "getDefaultVideoSize", supportSize);
-        for (Size size : supportSize) {
-            if (Config.videoRatioMatched(size) && size.getHeight() <= displaySize.x) {
-                return size;
+        if (quality == VIDEO_QUALITY_480P) {
+            for (Size size : supportSize) {
+                if (size.getHeight() <= displaySize.x && size.getHeight() <= quality) {
+                    return size;
+                }
+            }
+        } else {
+            for (Size size : supportSize) {
+                if (Config.videoRatioMatched(size) && size.getHeight() <= displaySize.x && size.getHeight() <= quality) {
+                    return size;
+                }
             }
         }
-        return supportSize[0];
+        return defaultSize;
     }
 
     /* size format is "width x height"*/

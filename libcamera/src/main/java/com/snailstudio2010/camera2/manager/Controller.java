@@ -10,6 +10,7 @@ public interface Controller {
     int CAMERA_STATE_START_RECORD = 1 << 4;
     int CAMERA_STATE_PAUSE_RECORD = 1 << 5;
     int CAMERA_STATE_CAPTURE = 1 << 6;
+    int CAMERA_MODULE_DESTROY = 1 << 7;
 
 //    void changeModule(int module);
 

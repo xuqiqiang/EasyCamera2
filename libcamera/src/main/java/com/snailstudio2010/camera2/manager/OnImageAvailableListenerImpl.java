@@ -49,6 +49,7 @@ public class OnImageAvailableListenerImpl implements ImageReader.OnImageAvailabl
         this.mCameraPreviewCallback = callback;
         if (mPreviewReaderSurface != null) {
             previewBuilder.removeTarget(mPreviewReaderSurface);
+            mPreviewReaderSurface.release();
             mPreviewReaderSurface = null;
         }
 
