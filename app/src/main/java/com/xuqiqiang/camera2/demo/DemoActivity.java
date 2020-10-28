@@ -11,7 +11,6 @@ import android.widget.Toast;
 import com.snailstudio2010.camera2.CameraView;
 import com.snailstudio2010.camera2.callback.PictureListener;
 import com.snailstudio2010.camera2.module.PhotoModule;
-import com.xuqiqiang.camera2.demo.ui.ShutterButton;
 import com.xuqiqiang.camera2.demo.utils.Permission;
 
 /**
@@ -20,7 +19,6 @@ import com.xuqiqiang.camera2.demo.utils.Permission;
 public class DemoActivity extends BaseActivity {
 
     private CameraView mCameraView;
-    private ShutterButton mShutter;
     private PhotoModule mPhotoModule;
 
     @SuppressLint("ClickableViewAccessibility")
@@ -39,8 +37,8 @@ public class DemoActivity extends BaseActivity {
             }
         });
 
-        mShutter = findViewById(R.id.btn_shutter);
-        mShutter.setOnClickListener(new View.OnClickListener() {
+        View shutter = findViewById(R.id.btn_shutter);
+        shutter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mPhotoModule.takePicture(new PictureListener() {

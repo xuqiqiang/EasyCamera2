@@ -15,7 +15,7 @@ Camera2是Google在Android 5.0中全新设计的框架，相机模块是和硬�
 - 解决了开启闪光灯拍照暗的问题
 - 解决了自动闪光灯无法触发闪光的问题
 - 解决了部分机型预览和拍照暗的问题
-- 增加了照片视频方向修正
+- 实现了照片和视频方向修正
 - 实现了手动对焦
 - 实现了手动缩放
 - 实现了预览界面的实时滤镜调节
@@ -41,7 +41,7 @@ allprojects {
 }
 
 dependencies {
-	implementation 'com.github.xuqiqiang:EasyCamera2:1.0.0'
+	implementation 'com.github.xuqiqiang:EasyCamera2:1.0.1'
 }
 ```
 
@@ -49,6 +49,8 @@ dependencies {
 ## Usage
 
 [Simple demo](https://github.com/xuqiqiang/EasyCamera2/blob/master/app/src/main/java/com/xuqiqiang/camera2/demo/DemoActivity.java)
+
+[Wiki](https://github.com/xuqiqiang/EasyCamera2/wiki)
 
 ## License
 
