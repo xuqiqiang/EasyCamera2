@@ -1,1 +1,1 @@
-include ':app', ':libcamera'
+include ':demo', ':libcamera'
